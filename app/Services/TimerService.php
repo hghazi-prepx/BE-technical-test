@@ -319,6 +319,9 @@ class TimerService
         return DB::transaction(function () use ($timer) {
             $timer = ExamTimer::whereKey($timer->id)->lockForUpdate()->first();
 
+            // Clear ALL timer adjustments for this exam timer (both global and student-specific)
+            TimerAdjustment::where('exam_timer_id', $timer->id)->delete();
+
             $timer->update([
                 'state' => 'idle',
                 'started_at' => null,
@@ -328,9 +331,6 @@ class TimerService
                 'version' => $timer->version + 1,
                 'updated_by' => Auth::id(),
             ]);
-
-            // Optionally: archive or soft-delete adjustments here
-            // For this implementation, we'll keep the history but reset the global counter
 
             TimerSynced::dispatch($timer->fresh());
 
@@ -371,6 +371,40 @@ class TimerService
 
             $timer->refresh();
             TimerSynced::dispatch($timer->fresh(), $studentId, $seconds);
+
+            // Automatically broadcast server time for synchronization
+            $this->broadcastServerTime();
+
+            return $timer;
+        });
+    }
+
+    /**
+     * Reset timer for a specific student
+     */
+    public function resetForStudent(ExamTimer $timer, int $studentId): ExamTimer
+    {
+        return DB::transaction(function () use ($timer, $studentId) {
+            $timer = ExamTimer::whereKey($timer->id)->lockForUpdate()->first();
+
+            // Clear all timer adjustments for this specific student
+            TimerAdjustment::where('exam_timer_id', $timer->id)
+                ->where('student_id', $studentId)
+                ->delete();
+
+            $timer->update([
+                'state' => 'idle',
+                'started_at' => null,
+                'paused_at' => null,
+                'paused_total_seconds' => 0,
+                'version' => $timer->version + 1,
+                'updated_by' => Auth::id(),
+            ]);
+
+            $freshTimer = $timer->fresh();
+
+            // Broadcast to specific student
+            TimerSynced::dispatch($freshTimer, $studentId, 0, 'reset');
 
             // Automatically broadcast server time for synchronization
             $this->broadcastServerTime();
@@ -475,5 +509,296 @@ class TimerService
             'version' => $timer->version,
             'server_time' => now()->toIso8601String(),
         ];
+    }
+
+    /**
+     * Start timer for a specific student
+     */
+    public function startForStudent(ExamTimer $timer, int $studentId): ExamTimer
+    {
+        return DB::transaction(function () use ($timer, $studentId) {
+            $timer = ExamTimer::whereKey($timer->id)->lockForUpdate()->first();
+
+            if (! in_array($timer->state, ['idle', 'finished'])) {
+                throw ValidationException::withMessages(['state' => 'Timer not startable.']);
+            }
+
+            $timer->update([
+                'state' => 'running',
+                'started_at' => now(),
+                'paused_at' => null,
+                'paused_total_seconds' => 0,
+                'version' => $timer->version + 1,
+                'updated_by' => Auth::id(),
+            ]);
+
+            $freshTimer = $timer->fresh();
+
+            // Broadcast to specific student
+            TimerSynced::dispatch($freshTimer, $studentId, 0, 'started');
+
+            // Automatically broadcast server time for synchronization
+            $this->broadcastServerTime();
+
+            return $timer;
+        });
+    }
+
+    /**
+     * Pause timer for a specific student
+     */
+    public function pauseForStudent(ExamTimer $timer, int $studentId): ExamTimer
+    {
+        return DB::transaction(function () use ($timer, $studentId) {
+            $timer = ExamTimer::whereKey($timer->id)->lockForUpdate()->first();
+
+            if ($timer->state !== 'running') {
+                throw ValidationException::withMessages(['state' => 'Timer not running.']);
+            }
+
+            $timer->update([
+                'state' => 'paused',
+                'paused_at' => now(),
+                'version' => $timer->version + 1,
+                'updated_by' => Auth::id(),
+            ]);
+
+            $freshTimer = $timer->fresh();
+
+            // Broadcast to specific student
+            TimerSynced::dispatch($freshTimer, $studentId, 0, 'paused');
+
+            // Automatically broadcast server time for synchronization
+            $this->broadcastServerTime();
+
+            return $timer;
+        });
+    }
+
+    /**
+     * Resume timer for a specific student
+     */
+    public function resumeForStudent(ExamTimer $timer, int $studentId): ExamTimer
+    {
+        return DB::transaction(function () use ($timer, $studentId) {
+            $timer = ExamTimer::whereKey($timer->id)->lockForUpdate()->first();
+
+            if ($timer->state !== 'paused') {
+                throw ValidationException::withMessages(['state' => 'Timer not paused.']);
+            }
+
+            // Calculate how long the timer was paused this time
+            $pausedFor = 0;
+            if ($timer->paused_at && ! $timer->paused_at->isFuture()) {
+                $pausedFor = abs(now()->diffInSeconds($timer->paused_at));
+                $pausedFor = min($pausedFor, 86400); // Cap at 24 hours
+            }
+
+            $newPausedTotal = $timer->paused_total_seconds + $pausedFor;
+            $newPausedTotal = max(0, min($newPausedTotal, 86400 * 7)); // Max 7 days
+
+            $timer->update([
+                'state' => 'running',
+                'started_at' => $timer->started_at, // Keep original start time
+                'paused_total_seconds' => $newPausedTotal,
+                'paused_at' => null,
+                'version' => $timer->version + 1,
+                'updated_by' => Auth::id(),
+            ]);
+
+            $freshTimer = $timer->fresh();
+
+            // Broadcast to specific student
+            TimerSynced::dispatch($freshTimer, $studentId, 0, 'resumed');
+
+            // Automatically broadcast server time for synchronization
+            $this->broadcastServerTime();
+
+            return $timer;
+        });
+    }
+
+    /**
+     * Start timer for all students in an exam
+     */
+    public function startForAllStudents(ExamTimer $timer): ExamTimer
+    {
+        return DB::transaction(function () use ($timer) {
+            $timer = ExamTimer::whereKey($timer->id)->lockForUpdate()->first();
+
+            if (! in_array($timer->state, ['idle', 'finished'])) {
+                throw ValidationException::withMessages(['state' => 'Timer not startable.']);
+            }
+
+            $timer->update([
+                'state' => 'running',
+                'started_at' => now(),
+                'paused_at' => null,
+                'paused_total_seconds' => 0,
+                'version' => $timer->version + 1,
+                'updated_by' => Auth::id(),
+            ]);
+
+            $freshTimer = $timer->fresh();
+
+            // Broadcast to all students
+            TimerSynced::dispatch($freshTimer, null, 0, 'started_for_all');
+
+            // Automatically broadcast server time for synchronization
+            $this->broadcastServerTime();
+
+            return $timer;
+        });
+    }
+
+    /**
+     * Pause timer for all students in an exam
+     */
+    public function pauseForAllStudents(ExamTimer $timer): ExamTimer
+    {
+        return DB::transaction(function () use ($timer) {
+            $timer = ExamTimer::whereKey($timer->id)->lockForUpdate()->first();
+
+            if ($timer->state !== 'running') {
+                throw ValidationException::withMessages(['state' => 'Timer not running.']);
+            }
+
+            $timer->update([
+                'state' => 'paused',
+                'paused_at' => now(),
+                'version' => $timer->version + 1,
+                'updated_by' => Auth::id(),
+            ]);
+
+            $freshTimer = $timer->fresh();
+
+            // Broadcast to all students
+            TimerSynced::dispatch($freshTimer, null, 0, 'paused_for_all');
+
+            // Automatically broadcast server time for synchronization
+            $this->broadcastServerTime();
+
+            return $timer;
+        });
+    }
+
+    /**
+     * Resume timer for all students in an exam
+     */
+    public function resumeForAllStudents(ExamTimer $timer): ExamTimer
+    {
+        return DB::transaction(function () use ($timer) {
+            $timer = ExamTimer::whereKey($timer->id)->lockForUpdate()->first();
+
+            if ($timer->state !== 'paused') {
+                throw ValidationException::withMessages(['state' => 'Timer not paused.']);
+            }
+
+            // Calculate how long the timer was paused this time
+            $pausedFor = 0;
+            if ($timer->paused_at && ! $timer->paused_at->isFuture()) {
+                $pausedFor = abs(now()->diffInSeconds($timer->paused_at));
+                $pausedFor = min($pausedFor, 86400); // Cap at 24 hours
+            }
+
+            $newPausedTotal = $timer->paused_total_seconds + $pausedFor;
+            $newPausedTotal = max(0, min($newPausedTotal, 86400 * 7)); // Max 7 days
+
+            $timer->update([
+                'state' => 'running',
+                'started_at' => $timer->started_at, // Keep original start time
+                'paused_total_seconds' => $newPausedTotal,
+                'paused_at' => null,
+                'version' => $timer->version + 1,
+                'updated_by' => Auth::id(),
+            ]);
+
+            $freshTimer = $timer->fresh();
+
+            // Broadcast to all students
+            TimerSynced::dispatch($freshTimer, null, 0, 'resumed_for_all');
+
+            // Automatically broadcast server time for synchronization
+            $this->broadcastServerTime();
+
+            return $timer;
+        });
+    }
+
+    /**
+     * Reset timer for all students in an exam
+     */
+    public function resetForAllStudents(ExamTimer $timer): ExamTimer
+    {
+        return DB::transaction(function () use ($timer) {
+            $timer = ExamTimer::whereKey($timer->id)->lockForUpdate()->first();
+
+            // Clear ALL timer adjustments for this exam timer (both global and student-specific)
+            TimerAdjustment::where('exam_timer_id', $timer->id)->delete();
+
+            $timer->update([
+                'state' => 'idle',
+                'started_at' => null,
+                'paused_at' => null,
+                'paused_total_seconds' => 0,
+                'global_adjust_seconds' => 0,
+                'version' => $timer->version + 1,
+                'updated_by' => Auth::id(),
+            ]);
+
+            $freshTimer = $timer->fresh();
+
+            // Broadcast to all students
+            TimerSynced::dispatch($freshTimer, null, 0, 'reset_for_all');
+
+            // Automatically broadcast server time for synchronization
+            $this->broadcastServerTime();
+
+            return $timer;
+        });
+    }
+
+    /**
+     * Get timer state for a specific student
+     */
+    public function getTimerStateForStudent(ExamTimer $timer, int $studentId): array
+    {
+        $remaining = $this->remainingFor($timer, $studentId, CarbonImmutable::now());
+
+        // Get student-specific adjustments
+        $studentAdjustments = TimerAdjustment::where('exam_timer_id', $timer->id)
+            ->where('student_id', $studentId)
+            ->sum('seconds');
+
+        return [
+            'exam_id' => $timer->exam_id,
+            'student_id' => $studentId,
+            'state' => $timer->state,
+            'duration_seconds' => $timer->duration_seconds,
+            'started_at' => optional($timer->started_at)->toIso8601String(),
+            'paused_at' => optional($timer->paused_at)->toIso8601String(),
+            'paused_total_seconds' => $timer->paused_total_seconds,
+            'global_adjust_seconds' => $timer->global_adjust_seconds,
+            'student_adjust_seconds' => $studentAdjustments,
+            'remaining_seconds' => $remaining,
+            'version' => $timer->version,
+            'server_time' => now()->toIso8601String(),
+        ];
+    }
+
+    /**
+     * Get timer states for all students in an exam
+     */
+    public function getTimerStatesForAllStudents(ExamTimer $timer): array
+    {
+        $exam = $timer->exam;
+        $students = $exam->students;
+        $states = [];
+
+        foreach ($students as $student) {
+            $states[] = $this->getTimerStateForStudent($timer, $student->id);
+        }
+
+        return $states;
     }
 }

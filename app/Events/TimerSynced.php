@@ -20,6 +20,7 @@ class TimerSynced implements ShouldBroadcastNow
         public ExamTimer $timer,
         public ?int $studentId = null,
         public ?int $deltaSeconds = null,
+        public ?string $action = null,
     ) {}
 
     /**
@@ -62,6 +63,7 @@ class TimerSynced implements ShouldBroadcastNow
             'version' => $this->timer->version,
             'delta_seconds' => $this->deltaSeconds,
             'target_student_id' => $this->studentId,
+            'action' => $this->action,
             'server_time' => now()->toIso8601String(),
         ];
     }

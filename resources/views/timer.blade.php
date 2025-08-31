@@ -71,25 +71,53 @@
     }
   </script>
   <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
     body {
-      font-family: system-ui, sans-serif;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      color: #1f2937;
       padding: 2rem;
-      max-width: 800px;
-      margin: 0 auto;
-      background: #f8fafc;
     }
+
     .container {
-      background: white;
+      max-width: 1200px;
+      margin: 0 auto;
+      background: rgba(255, 255, 255, 0.95);
       padding: 2rem;
-      border-radius: 8px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      border-radius: 20px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+      backdrop-filter: blur(10px);
     }
+
     .exam-info {
       text-align: center;
       margin-bottom: 2rem;
       padding-bottom: 2rem;
-      border-bottom: 1px solid #e5e7eb;
+      border-bottom: 2px solid #e5e7eb;
     }
+
+    .exam-info h1 {
+      font-size: 2.5rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 1rem;
+    }
+
+    .exam-info p {
+      font-size: 1.125rem;
+      color: #6b7280;
+      font-weight: 500;
+    }
+
     .timer {
       font-size: 4rem;
       font-weight: 700;
@@ -97,65 +125,240 @@
       margin: 2rem 0;
       color: #1f2937;
       font-family: 'Courier New', monospace;
+      background: rgba(255, 255, 255, 0.9);
+      padding: 2rem;
+      border-radius: 16px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
     }
     .timer.warning { color: #f59e0b; }
     .timer.danger { color: #ef4444; }
     .state {
       text-align: center;
-      font-size: 1.2rem;
-      margin: 1rem 0;
-      padding: 0.5rem 1rem;
-      border-radius: 4px;
+      font-size: 1.25rem;
+      margin: 1.5rem 0;
+      padding: 1rem 1.5rem;
+      border-radius: 12px;
+      font-weight: 600;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
     }
-    .state.running { background: #dcfce7; color: #166534; }
-    .state.paused { background: #fef3c7; color: #92400e; }
-    .state.idle { background: #f3f4f6; color: #374151; }
-    .state.finished { background: #fecaca; color: #991b1b; }
+    .state.running { background: linear-gradient(135deg, #dcfce7, #bbf7d0); color: #166534; }
+    .state.paused { background: linear-gradient(135deg, #fef3c7, #fde68a); color: #92400e; }
+    .state.idle { background: linear-gradient(135deg, #f3f4f6, #e5e7eb); color: #374151; }
+    .state.finished { background: linear-gradient(135deg, #fecaca, #fca5a5); color: #991b1b; }
+
     .controls {
       display: flex;
-      gap: 0.5rem;
+      gap: 1rem;
       margin: 2rem 0;
       flex-wrap: wrap;
       justify-content: center;
+      background: rgba(255, 255, 255, 0.9);
+      padding: 2rem;
+      border-radius: 16px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
     }
+
     .controls button, .controls input, .controls select {
-      padding: 0.5rem 1rem;
-      border: 1px solid #d1d5db;
-      border-radius: 4px;
+      padding: 0.75rem 1.5rem;
+      border: 2px solid #e5e7eb;
+      border-radius: 8px;
       background: white;
       cursor: pointer;
+      font-weight: 600;
+      transition: all 0.3s ease;
+      font-size: 0.875rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
     }
+
+    .controls button {
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: white;
+      border: none;
+      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+    }
+
     .controls button:hover {
-      background: #f9fafb;
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(102, 126, 234, 0.6);
     }
+
     .controls button:disabled {
       opacity: 0.5;
       cursor: not-allowed;
+      transform: none;
+      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
     }
+
+    .controls input, .controls select {
+      background: white;
+      color: #374151;
+      border-color: #d1d5db;
+    }
+
+    .controls input:focus, .controls select:focus {
+      outline: none;
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
     .status {
       text-align: center;
       margin: 1rem 0;
-      padding: 0.5rem;
-      border-radius: 4px;
+      padding: 1rem;
+      border-radius: 12px;
       display: none;
+      font-weight: 600;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
     }
-    .status.success { background: #dcfce7; color: #166534; }
-    .status.error { background: #fecaca; color: #991b1b; }
+    .status.success { background: linear-gradient(135deg, #dcfce7, #bbf7d0); color: #166534; }
+    .status.error { background: linear-gradient(135deg, #fecaca, #fca5a5); color: #991b1b; }
+    .status.warning { background: linear-gradient(135deg, #fef3c7, #fde68a); color: #92400e; }
+
     .connection-status {
       position: fixed;
-      top: 10px;
-      right: 10px;
-      padding: 0.5rem 1rem;
-      border-radius: 4px;
+      top: 20px;
+      right: 20px;
+      padding: 0.75rem 1.5rem;
+      border-radius: 12px;
       font-size: 0.875rem;
+      font-weight: 600;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+      z-index: 1000;
     }
-    .connected { background: #dcfce7; color: #166534; }
-    .disconnected { background: #fecaca; color: #991b1b; }
+    .connected { background: linear-gradient(135deg, #dcfce7, #bbf7d0); color: #166534; }
+    .disconnected { background: linear-gradient(135deg, #fecaca, #fca5a5); color: #991b1b; }
+
     .metadata {
       font-size: 0.875rem;
       color: #6b7280;
       text-align: center;
       margin-top: 2rem;
+      padding: 1rem;
+      background: rgba(255, 255, 255, 0.9);
+      border-radius: 12px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    }
+
+    .user-info {
+      background: linear-gradient(135deg, #fbbf24, #f59e0b);
+      color: white;
+      padding: 0.75rem 1.5rem;
+      border-radius: 20px;
+      font-weight: 600;
+      display: inline-block;
+      margin-bottom: 1rem;
+      box-shadow: 0 4px 15px rgba(251, 191, 36, 0.4);
+    }
+
+    .role-badge {
+      background: linear-gradient(135deg, #10b981, #059669);
+      color: white;
+      padding: 0.25rem 0.75rem;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-left: 0.5rem;
+    }
+
+    .student-controls {
+      background: rgba(255, 255, 255, 0.9);
+      padding: 2rem;
+      border-radius: 16px;
+      margin: 2rem 0;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    }
+
+    .student-controls h3 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: 1.5rem;
+      color: #1f2937;
+      text-align: center;
+    }
+
+    .student-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1rem;
+      background: white;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    }
+
+    .student-table th {
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: white;
+      padding: 1rem;
+      text-align: left;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .student-table td {
+      padding: 1rem;
+      border-bottom: 1px solid #e5e7eb;
+    }
+
+    .student-table tr:hover {
+      background: #f9fafb;
+    }
+
+    .student-timer-selector {
+      background: rgba(255, 255, 255, 0.9);
+      padding: 2rem;
+      border-radius: 16px;
+      margin: 2rem 0;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+      text-align: center;
+    }
+
+    .student-timer-selector label {
+      display: block;
+      margin-bottom: 0.75rem;
+      font-weight: 600;
+      color: #374151;
+      font-size: 1.125rem;
+    }
+
+    .student-timer-selector select {
+      padding: 0.75rem 1.5rem;
+      border: 2px solid #e5e7eb;
+      border-radius: 8px;
+      background: white;
+      font-size: 1rem;
+      min-width: 300px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .student-timer-selector select:focus {
+      outline: none;
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    .student-timer-selector select:hover {
+      border-color: #667eea;
+    }
+
+    .selected-student-info {
+      margin-top: 1rem;
+      padding: 0.75rem;
+      background: linear-gradient(135deg, #ecfdf5, #d1fae5);
+      border-radius: 8px;
+      border: 1px solid #a7f3d0;
+      color: #065f46;
+      font-size: 0.875rem;
+      display: none;
+    }
+
+    .selected-student-info.show {
+      display: block;
     }
   </style>
 </head>
@@ -169,150 +372,26 @@
             <p>{{ $exam->description }}</p>
           @endif
         </div>
-        <div style="display: flex; gap: 1rem; align-items: center;">
-          <span style="color: #6b7280; font-size: 0.875rem;">
-            Logged in as: {{ auth()->user()->name }} ({{ auth()->user()->role }})
-          </span>
-          <button onclick="testWebSocket()" style="
-            padding: 0.5rem 1rem;
-            background: #3b82f6;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 0.875rem;
-          ">Test WebSocket</button>
-                          <button onclick="connectWebSocket()" style="
-          padding: 0.5rem 1rem;
-          background: #10b981;
-          color: white;
-          border: none;
-          border-radius: 4px;
-          cursor: pointer;
-          font-size: 0.875rem;
-        ">Connect WebSocket</button>
-        <button onclick="testBroadcasting()" style="
-          padding: 0.5rem 1rem;
-          background: #8b5cf6;
-          color: white;
-          border: none;
-          border-radius: 4px;
-          cursor: pointer;
-          font-size: 0.875rem;
-        ">Test Broadcasting</button>
-        <button onclick="debugTimerState()" style="
-          padding: 0.5rem 1rem;
-          background: #f59e0b;
-          color: white;
-          border: none;
-          border-radius: 4px;
-          cursor: pointer;
-          font-size: 0.875rem;
-        ">Debug Timer</button>
-        <button onclick="testWebSocketEvents()" style="
-          padding: 0.5rem 1rem;
-          background: #ec4899;
-          color: white;
-          border: none;
-          border-radius: 4px;
-          cursor: pointer;
-          font-size: 0.875rem;
-        ">Test Events</button>
-        <button onclick="checkWebSocketStatus()" style="
-          padding: 0.5rem 1rem;
-          background: #14b8a6;
-          color: white;
-          border: none;
-          border-radius: 4px;
-          cursor: pointer;
-          font-size: 0.875rem;
-        ">Check Status</button>
-        <button onclick="testWebSocketEndpoint()" style="
-          padding: 0.5rem 1rem;
-          background: #f97316;
-          color: white;
-          border: none;
-          border-radius: 4px;
-          cursor: pointer;
-          font-size: 0.875rem;
-        ">Test Endpoint</button>
-        <button onclick="checkUserPermissions()" style="
-          padding: 0.5rem 1rem;
-          background: #06b6d4;
-          color: white;
-          border: none;
-          border-radius: 4px;
-          cursor: pointer;
-          font-size: 0.875rem;
-        ">Check User</button>
-        @if(auth()->user()->role === 'admin')
-        <button onclick="testBroadcasting()" style="
-          padding: 0.5rem 1rem;
-          background: #dc2626;
-          color: white;
-          border: none;
-          border-radius: 4px;
-          cursor: pointer;
-          font-size: 0.875rem;
-        ">Test Broadcast</button>
-        @endif
-        <button onclick="testBroadcastingAuth()" style="
-          padding: 0.5rem 1rem;
-          background: #059669;
-          color: white;
-          border: none;
-          border-radius: 4px;
-          cursor: pointer;
-          font-size: 0.875rem;
-        ">Test Auth</button>
-        <button onclick="testPauseResumeTiming()" style="
-          padding: 0.5rem 1rem;
-          background: #7c3aed;
-          color: white;
-          border: none;
-          border-radius: 4px;
-          cursor: pointer;
-          font-size: 0.875rem;
-        ">Test Timing</button>
-        @if(auth()->user()->role === 'admin')
-        <button onclick="testTimerState()" style="
-          padding: 0.5rem 1rem;
-          background: #0891b2;
-          color: white;
-          border: none;
-          border-radius: 4px;
-          cursor: pointer;
-          font-size: 0.875rem;
-        ">Test Timer State</button>
-        @endif
-        <button onclick="startServerTimeBroadcast()" style="
-          padding: 0.5rem 1rem;
-          background: #10b981;
-          color: white;
-          border: none;
-          border-radius: 4px;
-          cursor: pointer;
-          font-size: 0.875rem;
-        ">Start Time Sync</button>
-        <button onclick="testServerTimeSync()" style="
-          padding: 0.5rem 1rem;
-          background: #8b5cf6;
-          color: white;
-          border: none;
-          border-radius: 4px;
-          cursor: pointer;
-          font-size: 0.875rem;
-        ">Test Time Sync</button>
+        <div style="display: flex; gap: 1rem; align-items: center; justify-content: space-between;">
+          <div class="user-info">
+            Logged in as: <strong>{{ auth()->user()->name }}</strong>
+            <span class="role-badge">{{ ucfirst(auth()->user()->role) }}</span>
+          </div>
           <form method="POST" action="{{ route('logout') }}" style="margin: 0;">
             @csrf
             <button type="submit" style="
-              padding: 0.5rem 1rem;
-              background: #ef4444;
+              padding: 0.75rem 1.5rem;
+              background: linear-gradient(135deg, #ef4444, #dc2626);
               color: white;
               border: none;
-              border-radius: 4px;
+              border-radius: 8px;
               cursor: pointer;
               font-size: 0.875rem;
+              font-weight: 600;
+              transition: all 0.3s ease;
+              text-transform: uppercase;
+              letter-spacing: 0.5px;
+              box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);
             ">Logout</button>
           </form>
         </div>
@@ -341,6 +420,20 @@
       </div>
     </div>
 
+    <!-- Student Timer Selector -->
+    @if(auth()->user() && in_array(auth()->user()->role, ['proctor', 'admin']))
+    <div class="student-timer-selector">
+      <label for="timer-student-selector">Select Student Timer to Display:</label>
+      <select id="timer-student-selector">
+        <option value="">Exam Timer (Default)</option>
+      </select>
+      <div id="selected-student-info" class="selected-student-info">
+        <span id="student-timer-label"></span>
+        <span id="student-adjustment-info"></span>
+      </div>
+    </div>
+    @endif
+
     <div class="timer" id="timer">--:--:--</div>
 
     <div class="state" id="state">Loading...</div>
@@ -349,6 +442,16 @@
 
     @if(auth()->user() && in_array(auth()->user()->role, ['proctor', 'admin']))
     <div class="controls">
+      <div id="control-mode-indicator" style="
+        text-align: center;
+        margin-bottom: 1rem;
+        padding: 0.5rem;
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        color: white;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 0.875rem;
+      ">Controlling: All Students</div>
       <button onclick="start()" id="start-btn">Start</button>
       <button onclick="pause()" id="pause-btn">Pause</button>
       <button onclick="resume()" id="resume-btn">Resume</button>
@@ -357,11 +460,32 @@
 
     <div class="controls">
       <input id="adj" type="number" value="60" step="5" placeholder="Seconds" />
-      <button onclick="adjustAll()">Adjust All</button>
-      <select id="student-id" placeholder="Select Student (optional)">
-        <option value="">Select Student (optional)</option>
-      </select>
-      <button onclick="adjustStudent()">Adjust Student</button>
+      <button onclick="adjustAll()">Adjust Timer</button>
+    </div>
+
+
+
+    <!-- Student Timer Status Table -->
+    <div class="student-controls">
+      <h3>Student Timer Status</h3>
+      <button onclick="refreshStudentStatuses()" style="margin-bottom: 1rem; background: linear-gradient(135deg, #6b7280, #4b5563);">Refresh Statuses</button>
+      <div id="student-status-table" style="overflow-x: auto;">
+        <table class="student-table">
+          <thead>
+            <tr>
+              <th>Student ID</th>
+              <th>Status</th>
+              <th>Remaining Time</th>
+              <th>Adjustments</th>
+            </tr>
+          </thead>
+          <tbody id="student-status-tbody">
+            <tr>
+              <td colspan="4" style="padding: 1rem; text-align: center; color: #6b7280;">Click "Refresh Statuses" to load student information</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
     @endif
 
@@ -390,26 +514,7 @@ let duration = 0, startedAt = null, pausedAt = null, pausedTotal = 0, globalAdju
 let renderInterval = null;
 let lastUpdateTime = null;
 
-// Function to populate users dropdown
-async function populateUsersDropdown() {
-  try {
-    const response = await axios.get(`/api/exams/${examId}/users`);
-    const users = response.data;
 
-    const select = document.getElementById('student-id');
-    // Clear existing options except the first one
-    select.innerHTML = '<option value="">Select Student (optional)</option>';
-
-    users.forEach(user => {
-      const option = document.createElement('option');
-      option.value = user.id;
-      option.textContent = `${user.name} (${user.email})`;
-      select.appendChild(option);
-    });
-  } catch (error) {
-    console.error('Failed to load users:', error);
-  }
-}
 
 function iso(s) { return s ? new Date(s) : null; }
 function nowServer() { return new Date(Date.now() + serverOffset); }
@@ -459,6 +564,11 @@ function remaining() {
   const T = serverTimeOffset ? new Date(Date.now() + serverTimeOffset) : nowServer();
   let elapsed = 0;
 
+  // Safety check for undefined state
+  if (!state) {
+    return duration || 0;
+  }
+
   if (state === 'running' && startedAt) {
     // When running: elapsed = (now - startedAt) - pausedTotal
     elapsed = Math.floor((T - startedAt) / 1000) - pausedTotal;
@@ -488,11 +598,18 @@ function remaining() {
 }
 
 function render(){
+  // Safety check - don't render if state is not initialized
+  if (!state) {
+    console.log('Render called before state initialized, skipping...');
+    return;
+  }
+
   const remainingSeconds = remaining();
   const timerEl = document.getElementById('timer');
   const stateEl = document.getElementById('state');
 
   // Update timer display with real-time countdown
+  if (timerEl) {
   timerEl.textContent = fmt(remainingSeconds);
 
   // Color coding based on time remaining
@@ -501,14 +618,29 @@ function render(){
     timerEl.classList.add('warning');
   } else if (remainingSeconds <= 60) {
     timerEl.classList.add('danger');
+    }
   }
 
+  // Safely update state display
+  if (stateEl && state) {
   stateEl.textContent = state.charAt(0).toUpperCase() + state.slice(1);
   stateEl.className = `state ${state}`;
+  } else if (stateEl) {
+    stateEl.textContent = 'Loading...';
+    stateEl.className = 'state idle';
+  }
 
-  // Update metadata
-  document.getElementById('server-time').textContent = nowServer().toLocaleTimeString();
-  document.getElementById('detailed-state').textContent = state;
+  // Update metadata safely
+  const serverTimeEl = document.getElementById('server-time');
+  const detailedStateEl = document.getElementById('detailed-state');
+
+  if (serverTimeEl) {
+    serverTimeEl.textContent = nowServer().toLocaleTimeString();
+  }
+
+  if (detailedStateEl && state) {
+    detailedStateEl.textContent = state;
+  }
 
   // Store last update time for performance tracking
   lastUpdateTime = Date.now();
@@ -562,11 +694,18 @@ async function hydrate(){
 
     document.getElementById('version').textContent = t.version;
 
-    if (!renderInterval) renderInterval = setInterval(render, 100); // More frequent updates for smoother countdown
+    // Only start render interval if we have valid data
+    if (state && duration > 0) {
+      if (!renderInterval) {
+        renderInterval = setInterval(render, 100); // More frequent updates for smoother countdown
+      }
 
     // Initial render to show current state
     render();
     console.log('Timer hydrated - State:', state, 'Remaining:', remaining(), 'Started at:', startedAt);
+    } else {
+      console.log('Timer data not ready yet, skipping render interval');
+    }
 
     updateConnectionStatus(true);
   } catch (error) {
@@ -588,11 +727,33 @@ function updateConnectionStatus(connected) {
 // Timer control functions
 window.start = async () => {
   try {
-    const response = await axios.post(`/api/exams/${examId}/timer/start`);
-    console.log('Start response:', response.data);
+    const selectedStudentId = document.getElementById('timer-student-selector')?.value;
+    console.log('Start button clicked - Selected student ID:', selectedStudentId, 'Type:', typeof selectedStudentId);
+
+    if (selectedStudentId && selectedStudentId !== '') {
+      // Start timer for specific student
+      const response = await axios.post(`/api/exams/${examId}/timer/start-student`, { student_id: selectedStudentId });
+      console.log('Start student response:', response.data);
+      showStatus(`Timer started for selected student`, 'success');
+
+      // Refresh student statuses to show updated state
+      if (typeof refreshStudentStatuses === 'function') {
+        refreshStudentStatuses();
+      }
+    } else {
+      // Start timer for all students (exam timer)
+      const response = await axios.post(`/api/exams/${examId}/timer/start-all`);
+      console.log('Start all students response:', response.data);
+      showStatus('Timer started for all students', 'success');
+
+      // Refresh student statuses to show updated state
+      if (typeof refreshStudentStatuses === 'function') {
+        refreshStudentStatuses();
+      }
+    }
 
     // Update version from response
-    if (response.data.version) {
+    if (response?.data?.version) {
       document.getElementById('version').textContent = response.data.version;
     }
 
@@ -603,7 +764,6 @@ window.start = async () => {
 
     // Force immediate render update
     render();
-    showStatus('Timer started');
 
     // Refresh timer data to get accurate server state
     setTimeout(() => hydrate(), 100);
@@ -614,11 +774,33 @@ window.start = async () => {
 
 window.pause = async () => {
   try {
-    const response = await axios.post(`/api/exams/${examId}/timer/pause`);
-    console.log('Pause response:', response.data);
+    const selectedStudentId = document.getElementById('timer-student-selector')?.value;
+    console.log('Pause button clicked - Selected student ID:', selectedStudentId, 'Type:', typeof selectedStudentId);
+
+    if (selectedStudentId && selectedStudentId !== '') {
+      // Pause timer for specific student
+      const response = await axios.post(`/api/exams/${examId}/timer/pause-student`, { student_id: selectedStudentId });
+      console.log('Pause student response:', response.data);
+      showStatus(`Timer paused for selected student`, 'success');
+
+      // Refresh student statuses to show updated state
+      if (typeof refreshStudentStatuses === 'function') {
+        refreshStudentStatuses();
+      }
+    } else {
+      // Pause timer for all students (exam timer)
+      const response = await axios.post(`/api/exams/${examId}/timer/pause-all`);
+      console.log('Pause all students response:', response.data);
+      showStatus('Timer paused for all students', 'success');
+
+      // Refresh student statuses to show updated state
+      if (typeof refreshStudentStatuses === 'function') {
+        refreshStudentStatuses();
+      }
+    }
 
     // Update version from response
-    if (response.data.version) {
+    if (response?.data?.version) {
       document.getElementById('version').textContent = response.data.version;
     }
 
@@ -628,7 +810,6 @@ window.pause = async () => {
 
     // Force immediate render update
     render();
-    showStatus('Timer paused');
 
     // Refresh timer data to get accurate server state
     setTimeout(() => hydrate(), 100);
@@ -639,11 +820,33 @@ window.pause = async () => {
 
 window.resume = async () => {
   try {
-    const response = await axios.post(`/api/exams/${examId}/timer/resume`);
-    console.log('Resume response:', response.data);
+    const selectedStudentId = document.getElementById('timer-student-selector')?.value;
+    console.log('Resume button clicked - Selected student ID:', selectedStudentId, 'Type:', typeof selectedStudentId);
+
+    if (selectedStudentId && selectedStudentId !== '') {
+      // Resume timer for specific student
+      const response = await axios.post(`/api/exams/${examId}/timer/resume-student`, { student_id: selectedStudentId });
+      console.log('Resume student response:', response.data);
+      showStatus(`Timer resumed for selected student`, 'success');
+
+      // Refresh student statuses to show updated state
+      if (typeof refreshStudentStatuses === 'function') {
+        refreshStudentStatuses();
+      }
+    } else {
+      // Resume timer for all students (exam timer)
+      const response = await axios.post(`/api/exams/${examId}/timer/resume-all`);
+      console.log('Resume all students response:', response.data);
+      showStatus('Timer resumed for all students', 'success');
+
+      // Refresh student statuses to show updated state
+      if (typeof refreshStudentStatuses === 'function') {
+        refreshStudentStatuses();
+      }
+    }
 
     // Update version from response
-    if (response.data.version) {
+    if (response?.data?.version) {
       document.getElementById('version').textContent = response.data.version;
     }
 
@@ -655,7 +858,6 @@ window.resume = async () => {
 
     // Force immediate render update
     render();
-    showStatus('Timer resumed');
 
     // Refresh timer data to get accurate server state
     setTimeout(() => hydrate(), 100);
@@ -666,13 +868,42 @@ window.resume = async () => {
 }
 
 window.resetTimer = async () => {
-  if (!confirm('Are you sure you want to reset the timer?')) return;
+  const selectedStudentId = document.getElementById('timer-student-selector')?.value;
+  console.log('Reset button clicked - Selected student ID:', selectedStudentId, 'Type:', typeof selectedStudentId);
+
+  if (selectedStudentId && selectedStudentId !== '') {
+    if (!confirm('Are you sure you want to reset the timer for the selected student?')) return;
+  } else {
+    if (!confirm('Are you sure you want to reset the timer for all students?')) return;
+  }
+
   try {
-    const response = await axios.post(`/api/exams/${examId}/timer/reset`);
-    console.log('Reset response:', response.data);
+    let response;
+
+    if (selectedStudentId && selectedStudentId !== '') {
+      // Reset timer for specific student
+      response = await axios.post(`/api/exams/${examId}/timer/reset-student`, { student_id: selectedStudentId });
+      console.log('Reset student response:', response.data);
+      showStatus(`Timer reset for selected student`, 'success');
+
+      // Refresh student statuses to show updated state
+      if (typeof refreshStudentStatuses === 'function') {
+        refreshStudentStatuses();
+      }
+    } else {
+      // Reset timer for all students (exam timer)
+      response = await axios.post(`/api/exams/${examId}/timer/reset-all`);
+      console.log('Reset all students response:', response.data);
+      showStatus('Timer reset for all students', 'success');
+
+      // Refresh student statuses to show updated state
+      if (typeof refreshStudentStatuses === 'function') {
+        refreshStudentStatuses();
+      }
+    }
 
     // Update version from response
-    if (response.data.version) {
+    if (response?.data?.version) {
       document.getElementById('version').textContent = response.data.version;
     }
 
@@ -684,7 +915,6 @@ window.resetTimer = async () => {
 
     // Force immediate render update
     render();
-    showStatus('Timer reset');
 
     // Refresh timer data to get accurate server state
     setTimeout(() => hydrate(), 100);
@@ -697,21 +927,51 @@ window.adjustAll = async () => {
   const seconds = parseInt(document.getElementById('adj').value || 0, 10);
   if (seconds === 0) return;
 
+  const selectedStudentId = document.getElementById('timer-student-selector')?.value;
+  console.log('Adjust button clicked - Selected student ID:', selectedStudentId, 'Type:', typeof selectedStudentId);
+
   try {
-    const response = await axios.post(`/api/exams/${examId}/timer/adjust`, { seconds });
+    let response;
+
+    if (selectedStudentId && selectedStudentId !== '') {
+      // Adjust timer for specific student
+      response = await axios.post(`/api/exams/${examId}/timer/adjust-student`, {
+        student_id: selectedStudentId,
+        seconds
+      });
+      console.log('Adjust student response:', response.data);
+      showStatus(`Adjusted selected student by ${seconds > 0 ? '+' : ''}${seconds} seconds`, 'success');
+
+      // Refresh student statuses to show updated state
+      if (typeof refreshStudentStatuses === 'function') {
+        refreshStudentStatuses();
+      }
+    } else {
+      // Adjust timer for all students (exam timer)
+      response = await axios.post(`/api/exams/${examId}/timer/adjust`, { seconds });
     console.log('Adjust all response:', response.data);
+      showStatus(`Adjusted all students by ${seconds > 0 ? '+' : ''}${seconds} seconds`, 'success');
+
+      // Refresh student statuses to show updated state
+      if (typeof refreshStudentStatuses === 'function') {
+        refreshStudentStatuses();
+      }
+    }
 
     // Update version from response
-    if (response.data.version) {
+    if (response?.data?.version) {
       document.getElementById('version').textContent = response.data.version;
     }
 
     // Immediately update local state for instant UI response
-    globalAdjust += seconds; // Add to existing adjustment
+    if (selectedStudentId) {
+      studentAdjust += seconds; // Add to student-specific adjustment
+    } else {
+      globalAdjust += seconds; // Add to global adjustment
+    }
 
     // Force immediate render update
     render();
-    showStatus(`Adjusted all students by ${seconds > 0 ? '+' : ''}${seconds} seconds`);
 
     // Refresh timer data to get accurate server state
     setTimeout(() => hydrate(), 100);
@@ -720,45 +980,7 @@ window.adjustAll = async () => {
   }
 };
 
-window.adjustStudent = async () => {
-  const seconds = parseInt(document.getElementById('adj').value || 0, 10);
-  const studentId = document.getElementById('student-id').value;
 
-  if (seconds === 0 || !studentId) {
-    showStatus('Please enter both seconds and select a student', 'error');
-    return;
-  }
-
-  try {
-    const response = await axios.post(`/api/exams/${examId}/timer/adjust`, { seconds, student_id: studentId });
-    console.log('Adjust student response:', response.data);
-
-    // Update version from response
-    if (response.data.version) {
-      document.getElementById('version').textContent = response.data.version;
-    }
-
-    // Immediately update local state for instant UI response
-    if (parseInt(studentId) == userId) {
-      studentAdjust += seconds; // Add to existing student adjustment
-    }
-
-    // Force immediate render update
-    render();
-
-    // Get student name for better user experience
-    const studentSelect = document.getElementById('student-id');
-    const selectedOption = studentSelect.options[studentSelect.selectedIndex];
-    const studentName = selectedOption ? selectedOption.textContent : `ID ${studentId}`;
-
-    showStatus(`Adjusted ${studentName} by ${seconds > 0 ? '+' : ''}${seconds} seconds`);
-
-    // Refresh timer data to get accurate server state
-    setTimeout(() => hydrate(), 100);
-  } catch (error) {
-    showStatus(error.response?.data?.message || 'Failed to adjust timer', 'error');
-  }
-};
 
   // WebSocket initialization
   (async function initWS(){
@@ -928,38 +1150,21 @@ window.adjustStudent = async () => {
     console.warn('Echo connector structure not as expected:', Echo.connector);
   }
 
-    // Test WebSocket connection
+    // Check WebSocket connection status
   setTimeout(() => {
-    // Check different possible connection state locations
     let connectionState = 'unknown';
     if (Echo.connector && Echo.connector.pusher && Echo.connector.pusher.connection) {
       connectionState = Echo.connector.pusher.connection.state;
-      console.log('WebSocket connection test - State (pusher):', connectionState);
     } else if (Echo.connector && Echo.connector.connection) {
       connectionState = Echo.connector.connection.state;
-      console.log('WebSocket connection test - State (direct):', connectionState);
-    } else {
-      console.log('WebSocket connection test - No connector found');
     }
 
-    console.log('Echo configuration:', {
-      broadcaster: Echo.options?.broadcaster,
-      key: Echo.options?.key,
-      wsHost: Echo.options?.wsHost,
-      wsPort: Echo.options?.wsPort,
-      forceTLS: Echo.options?.forceTLS,
-      encrypted: Echo.options?.encrypted
-    });
-
     if (connectionState === 'connected') {
-      console.log('WebSocket connection test successful');
       showStatus('Real-time synchronization active', 'success');
     } else {
-      console.warn('WebSocket connection test failed - State:', connectionState);
-      showStatus('Real-time synchronization not available - Timer will work without live updates', 'error');
+      showStatus('Real-time synchronization not available - Timer will work without live updates', 'warning');
 
       // Set up polling as fallback when WebSocket fails
-      console.log('Setting up polling fallback for timer updates');
       setInterval(() => {
         let currentState = 'unknown';
         if (Echo.connector && Echo.connector.pusher && Echo.connector.pusher.connection) {
@@ -975,346 +1180,263 @@ window.adjustStudent = async () => {
     }
   }, 3000);
 
-      // Add manual WebSocket test function
-  window.testWebSocket = () => {
-    console.log('Testing WebSocket connection...');
-    console.log('Echo object:', Echo);
-    console.log('Echo object keys:', Object.keys(Echo));
-    console.log('Echo options:', Echo.options);
-    console.log('Echo connector:', Echo.connector);
-
-    // Log all available methods on Echo
-    console.log('Available methods on Echo:', Object.getOwnPropertyNames(Object.getPrototypeOf(Echo)));
-
-    // Check different possible connection state locations
-    let connectionState = 'unknown';
-    if (Echo.connector && Echo.connector.pusher && Echo.connector.pusher.connection) {
-      connectionState = Echo.connector.pusher.connection.state;
-      console.log('Connection state (pusher):', connectionState);
-    } else if (Echo.connector && Echo.connector.connection) {
-      connectionState = Echo.connector.connection.state;
-      console.log('Connection state (direct):', connectionState);
-    } else if (Echo.connection) {
-      connectionState = Echo.connection.state;
-      console.log('Connection state (Echo direct):', connectionState);
-    } else {
-      console.log('Connection state: No connector found');
-    }
-
-    if (connectionState === 'connected') {
-      showStatus('WebSocket is connected and working', 'success');
-    } else {
-      showStatus('WebSocket is not connected', 'error');
-
-      // Try to connect manually using different methods
-      console.log('Attempting manual connection...');
-      try {
-        if (Echo.connector && Echo.connector.pusher && Echo.connector.pusher.connect) {
-          Echo.connector.pusher.connect();
-          showStatus('Manual connection attempt initiated (pusher)', 'success');
-        } else if (Echo.connector && Echo.connector.connect) {
-          Echo.connector.connect();
-          showStatus('Manual connection attempt initiated (direct)', 'success');
-        } else if (Echo.connection && Echo.connection.connect) {
-          Echo.connection.connect();
-          showStatus('Manual connection attempt initiated (Echo connection)', 'success');
-        } else if (Echo.connect) {
-          Echo.connect();
-          showStatus('Manual connection attempt initiated (Echo)', 'success');
-        } else {
-          console.log('No connect method found. Available methods:', Object.getOwnPropertyNames(Object.getPrototypeOf(Echo)));
-          showStatus('No connect method found - check console for available methods', 'error');
-        }
-      } catch (error) {
-        console.error('Manual connection failed:', error);
-        showStatus('Manual connection failed: ' + error.message, 'error');
-      }
-    }
-  };
-
-  // Add function to manually connect WebSocket
-  window.connectWebSocket = () => {
-    console.log('Attempting to connect WebSocket...');
-    try {
-      // Try to connect to the WebSocket server using different methods
-      if (Echo.connector && Echo.connector.pusher && Echo.connector.pusher.connect) {
-        Echo.connector.pusher.connect();
-        showStatus('WebSocket connection attempt initiated (pusher)', 'success');
-      } else if (Echo.connector && Echo.connector.connect) {
-        Echo.connector.connect();
-        showStatus('WebSocket connection attempt initiated (direct)', 'success');
-      } else if (Echo.connect) {
-        Echo.connect();
-        showStatus('WebSocket connection attempt initiated (Echo)', 'success');
-      } else {
-        showStatus('No connect method found', 'error');
-      }
-    } catch (error) {
-      console.error('Failed to connect WebSocket:', error);
-      showStatus('Failed to connect WebSocket: ' + error.message, 'error');
-    }
-  };
-
-  // Add function to test broadcasting
-  window.testBroadcasting = () => {
-    console.log('Testing broadcasting configuration...');
-    console.log('Broadcasting driver:', '{{ config("broadcasting.default") }}');
-    console.log('Reverb config:', {
-      host: '{{ config("broadcasting.connections.reverb.options.host") }}',
-      port: '{{ config("broadcasting.connections.reverb.options.port") }}',
-      scheme: '{{ config("broadcasting.connections.reverb.options.scheme") }}'
-    });
-    showStatus('Broadcasting config logged to console', 'success');
-  };
-
-  // Add function to debug timer state
-  window.debugTimerState = () => {
-    console.log('Current timer state:', {
-      state: state,
-      duration: duration,
-      startedAt: startedAt,
-      pausedAt: pausedAt,
-      pausedTotal: pausedTotal,
-      globalAdjust: globalAdjust,
-      studentAdjust: studentAdjust,
-      remaining: remaining(),
-      serverOffset: serverOffset
-    });
-    showStatus('Timer state logged to console', 'success');
-  };
-
-    // Add function to test WebSocket event reception
-  window.testWebSocketEvents = () => {
-    console.log('Testing WebSocket event reception...');
-    console.log('Echo object:', Echo);
-    console.log('Echo type:', typeof Echo);
-    console.log('Echo constructor:', Echo.constructor.name);
-
-    // Check different possible connection state locations
-    let connectionState = 'unknown';
-    if (Echo.connector && Echo.connector.pusher && Echo.connector.pusher.connection) {
-      connectionState = Echo.connector.pusher.connection.state;
-      console.log('Connection state (pusher):', connectionState);
-    } else if (Echo.connector && Echo.connector.connection) {
-      connectionState = Echo.connector.connection.state;
-      console.log('Connection state (direct):', connectionState);
-    } else if (Echo.connection) {
-      connectionState = Echo.connection.state;
-      console.log('Connection state (Echo direct):', connectionState);
-    } else {
-      console.log('Connection state: No connector found');
-    }
-
-    // Test if we can access the channels
-    try {
-      console.log('Attempting to create private channel...');
-      const testChannel = Echo.private(`exams.${examId}.timer`);
-      console.log('Test channel created:', testChannel);
-      console.log('Channel type:', typeof testChannel);
-      console.log('Channel methods:', Object.getOwnPropertyNames(Object.getPrototypeOf(testChannel)));
-      showStatus('WebSocket channels accessible', 'success');
-    } catch (error) {
-      console.error('Failed to create test channel:', error);
-      showStatus('WebSocket channels not accessible', 'error');
-    }
-  };
-
-  // Add function to test WebSocket endpoint
-  window.testWebSocketEndpoint = async () => {
-    try {
-      console.log('Testing WebSocket endpoint...');
-      const response = await axios.get('/test-websocket');
-      console.log('WebSocket endpoint response:', response.data);
-      showStatus('WebSocket endpoint working', 'success');
-    } catch (error) {
-      console.error('WebSocket endpoint test failed:', error);
-      showStatus('WebSocket endpoint failed: ' + error.message, 'error');
-    }
-  };
-
-  // Add function to check WebSocket status
-  window.checkWebSocketStatus = () => {
-    console.log('=== WebSocket Status Check ===');
-    console.log('Echo object:', window.Echo);
-    console.log('Echo type:', typeof window.Echo);
-
-    if (window.Echo) {
-      console.log('Echo object keys:', Object.keys(window.Echo));
-      console.log('Echo options:', window.Echo.options);
-      console.log('Echo connector:', window.Echo.connector);
-
-      // Check socket ID
-      try {
-        const socketId = window.Echo.socketId();
-        console.log('Socket ID:', socketId);
-        console.log('Socket ID type:', typeof socketId);
-        console.log('Socket ID valid:', socketId && socketId.length > 0);
-      } catch (error) {
-        console.log('Socket ID error:', error.message);
-      }
-
-      // Check connection state
-      if (window.Echo.connector && window.Echo.connector.pusher && window.Echo.connector.pusher.connection) {
-        console.log('Connection state:', window.Echo.connector.pusher.connection.state);
-        console.log('Connection ready:', window.Echo.connector.pusher.connection.state === 'connected');
-      } else {
-        console.log('No pusher connector found');
-      }
-
-      // Check if private method works
-      try {
-        const testChannel = window.Echo.private(`exams.${examId}.timer`);
-        console.log('Private channel creation:', testChannel ? 'Success' : 'Failed');
-      } catch (error) {
-        console.log('Private channel error:', error.message);
-      }
-    } else {
-      console.log('Echo object not available');
-    }
-
-    showStatus('WebSocket status checked - see console', 'success');
-  };
-
-  // Add function to check user permissions
-  window.checkUserPermissions = async () => {
-    try {
-      console.log('Checking user permissions...');
-      const response = await axios.get('/check-user');
-      console.log('User permissions response:', response.data);
-      showStatus('User permissions checked - see console', 'success');
-    } catch (error) {
-      console.error('User permissions check failed:', error);
-      showStatus('User permissions check failed: ' + error.message, 'error');
-    }
-  };
-
-  // Add function to test broadcasting manually
-  window.testBroadcasting = async () => {
-    try {
-      console.log('Testing manual broadcasting...');
-      const response = await axios.get(`/test-broadcast/${examId}`);
-      console.log('Broadcast test response:', response.data);
-      showStatus('Manual broadcast test completed', 'success');
-    } catch (error) {
-      console.error('Broadcast test failed:', error);
-      showStatus('Broadcast test failed: ' + error.message, 'error');
-    }
-  };
-
-  // Add function to test broadcasting authentication
-  window.testBroadcastingAuth = async () => {
-    try {
-      console.log('Testing broadcasting authentication...');
-
-      // Get the real socket ID from Echo
-      let socketId = null;
-      if (window.Echo && window.Echo.socketId) {
-        try {
-          socketId = window.Echo.socketId();
-          console.log('Real socket ID:', socketId);
-        } catch (error) {
-          console.warn('Could not get socket ID:', error);
-        }
-      }
-
-      if (!socketId) {
-        showStatus('No socket ID available - Echo not connected', 'error');
-        return;
-      }
-
-      const response = await axios.get('/broadcasting/auth', {
-        params: {
-          socket_id: socketId,
-          channel_name: `exams.${examId}.timer`
-        }
-      });
-      console.log('Broadcasting auth response:', response.data);
-      showStatus('Broadcasting authentication working', 'success');
-    } catch (error) {
-      console.error('Broadcasting auth failed:', error);
-      showStatus('Broadcasting auth failed: ' + error.message, 'error');
-    }
-  };
-
-    // Add function to test pause/resume timing
-  window.testPauseResumeTiming = () => {
-    console.log('Testing pause/resume timing logic...');
-    console.log('Current timer state:', {
-      state: state,
-      duration: duration,
-      startedAt: startedAt,
-      pausedAt: pausedAt,
-      pausedTotal: pausedTotal,
-      remaining: remaining(),
-      globalAdjust: globalAdjust,
-      studentAdjust: studentAdjust
-    });
-
-    if (state === 'running' && startedAt) {
-      const elapsed = Math.floor((new Date() - startedAt) / 1000);
-      const expectedRemaining = duration + globalAdjust + studentAdjust - pausedTotal - elapsed;
-      console.log('Timing calculation:', {
-        elapsed: elapsed,
-        expectedRemaining: expectedRemaining,
-        actualRemaining: remaining(),
-        difference: expectedRemaining - remaining()
-      });
-    }
-
-    showStatus('Pause/resume timing test completed - check console', 'success');
-  };
-
-  // Add function to test timer state from server
-  window.testTimerState = async () => {
-    try {
-      console.log('Testing timer state from server...');
-      const response = await axios.get(`/test-timer/${examId}`);
-      console.log('Timer state response:', response.data);
-
-      // Also check the actual timer API to see the current state
-      console.log('Checking actual timer API...');
-      const timerResponse = await axios.get(`/api/exams/${examId}/timer`);
-      console.log('Actual timer API response:', timerResponse.data);
-
-      showStatus('Timer state test completed - check console', 'success');
-    } catch (error) {
-      console.error('Timer state test failed:', error);
-      showStatus('Timer state test failed: ' + error.message, 'error');
-    }
-  };
-
-  // Add function to start server time broadcasting
-  window.startServerTimeBroadcast = async () => {
-    try {
-      console.log('Starting server time broadcast...');
-      const response = await axios.post('/start-server-time-broadcast');
-      console.log('Server time broadcast started:', response.data);
-      showStatus('Server time synchronization started!', 'success');
-
-      // Also test the server time sync immediately
-      setTimeout(() => {
-        testServerTimeSync();
-      }, 2000);
-    } catch (error) {
-      console.error('Failed to start server time broadcast:', error);
-      showStatus('Failed to start server time sync: ' + error.message, 'error');
-    }
-  };
-
-  // Add function to test server time synchronization
-  window.testServerTimeSync = () => {
-    console.log('Testing server time synchronization...');
-    console.log('Current server time offset:', serverTimeOffset);
-    console.log('Client time:', new Date().toISOString());
-    console.log('Adjusted time:', new Date(Date.now() + serverTimeOffset).toISOString());
-
-    showStatus('Server time sync test completed - check console', 'success');
-  };
-
   // Populate users dropdown when page loads
   if (userRole === 'proctor' || userRole === 'admin') {
     populateUsersDropdown();
   }
+
+  // Populate individual student dropdown for admin/proctor
+  if (userRole === 'proctor' || userRole === 'admin') {
+    populateIndividualStudentDropdown();
+    populateTimerStudentSelector();
+  }
+
+  // Load default timer initially
+  await loadDefaultTimer();
+
+  // Function to populate individual student dropdown
+  async function populateIndividualStudentDropdown() {
+    try {
+      const response = await axios.get(`/api/exams/${examId}/users`);
+      const users = response.data;
+
+      const select = document.getElementById('individual-student-id');
+      if (select) {
+        select.innerHTML = '<option value="">Select Student</option>';
+        users.forEach(user => {
+          const option = document.createElement('option');
+          option.value = user.id;
+          option.textContent = `${user.name} (${user.email})`;
+          select.appendChild(option);
+        });
+        }
+      } catch (error) {
+      console.error('Failed to load individual student users:', error);
+    }
+  }
+
+  // Function to populate timer student selector
+  async function populateTimerStudentSelector() {
+    try {
+      const response = await axios.get(`/api/exams/${examId}/users`);
+      const users = response.data;
+
+      const select = document.getElementById('timer-student-selector');
+      if (select) {
+        // Keep the default option and add student options
+        select.innerHTML = '<option value="">Exam Timer (Default)</option>';
+        users.forEach(user => {
+          const option = document.createElement('option');
+          option.value = user.id;
+          option.textContent = `${user.name} (${user.email})`;
+          select.appendChild(option);
+        });
+
+        // Add event listener for timer switching
+        select.addEventListener('change', handleTimerStudentChange);
+      }
+    } catch (error) {
+      console.error('Failed to load timer student selector:', error);
+    }
+  }
+
+    // Function to handle timer student selection change
+  async function handleTimerStudentChange() {
+    const selectedStudentId = document.getElementById('timer-student-selector').value;
+    const studentInfo = document.getElementById('selected-student-info');
+    const studentLabel = document.getElementById('student-timer-label');
+    const studentAdjustment = document.getElementById('student-adjustment-info');
+    const controlModeIndicator = document.getElementById('control-mode-indicator');
+
+    console.log('Student selection changed - Selected ID:', selectedStudentId, 'Type:', typeof selectedStudentId);
+
+    if (!selectedStudentId) {
+      // Show default exam timer
+      studentInfo.style.display = 'none';
+      // Update control mode indicator
+      if (controlModeIndicator) {
+        controlModeIndicator.textContent = 'Controlling: All Students';
+        console.log('Control mode set to: All Students');
+      }
+      // Reset to default timer state
+      await loadDefaultTimer();
+      return;
+    }
+
+    try {
+      // Get student's timer state
+      const response = await axios.get(`/api/exams/${examId}/timer/student/${selectedStudentId}`);
+      const studentTimer = response.data;
+
+      // Update the display to show student's timer
+      studentLabel.textContent = `Showing timer for: ${studentTimer.student_name}`;
+
+      if (studentTimer.student_adjust_seconds !== 0) {
+        studentAdjustment.textContent = ` (${studentTimer.student_adjust_seconds > 0 ? '+' : ''}${studentTimer.student_adjust_seconds}s adjustment)`;
+    } else {
+        studentAdjustment.textContent = '';
+      }
+
+      studentInfo.style.display = 'block';
+
+      // Update control mode indicator
+      if (controlModeIndicator) {
+        controlModeIndicator.textContent = `Controlling: ${studentTimer.student_name}`;
+        console.log('Control mode set to:', studentTimer.student_name);
+      }
+
+      // Update the timer display with student's timer
+      await loadStudentTimer(selectedStudentId);
+
+    } catch (error) {
+      console.error('Failed to load student timer:', error);
+      showStatus('Failed to load student timer', 'error');
+    }
+  }
+
+  // Function to load default exam timer
+  async function loadDefaultTimer() {
+    try {
+      const response = await axios.get(`/api/exams/${examId}/timer`);
+      const timerData = response.data;
+
+      // Update global timer state
+      state = timerData.state;
+      duration = timerData.duration_seconds;
+      startedAt = timerData.started_at ? new Date(timerData.started_at) : null;
+      pausedAt = timerData.paused_at ? new Date(timerData.paused_at) : null;
+      pausedTotal = timerData.paused_total_seconds || 0;
+      globalAdjust = timerData.global_adjust_seconds || 0;
+      studentAdjust = 0; // Reset student adjustment for default timer
+
+            // Update display
+      updateTimerDisplay();
+      updateStateDisplay();
+
+      // Start render interval if not already running and we have valid data
+      if (!renderInterval && state && duration > 0) {
+        renderInterval = setInterval(render, 100);
+      }
+
+    } catch (error) {
+      console.error('Failed to load default timer:', error);
+    }
+  }
+
+  // Function to load specific student timer
+  async function loadStudentTimer(studentId) {
+    try {
+      const response = await axios.get(`/api/exams/${examId}/timer/student/${studentId}`);
+      const studentTimer = response.data;
+
+      // Update timer state with student's specific data
+      state = studentTimer.state;
+      duration = studentTimer.duration_seconds;
+      startedAt = studentTimer.started_at ? new Date(studentTimer.started_at) : null;
+      pausedAt = studentTimer.paused_at ? new Date(studentTimer.paused_at) : null;
+      pausedTotal = studentTimer.paused_total_seconds || 0;
+      globalAdjust = studentTimer.global_adjust_seconds || 0;
+      studentAdjust = studentTimer.student_adjust_seconds || 0;
+
+            // Update display
+      updateTimerDisplay();
+      updateStateDisplay();
+
+      // Start render interval if not already running and we have valid data
+      if (!renderInterval && state && duration > 0) {
+        renderInterval = setInterval(render, 100);
+      }
+
+    } catch (error) {
+      console.error('Failed to load student timer:', error);
+    }
+  }
+
+  // Function to update timer display
+  function updateTimerDisplay() {
+    const remainingSeconds = remaining();
+    const timerEl = document.getElementById('timer');
+
+    if (timerEl) {
+      // Update timer display with real-time countdown
+      timerEl.textContent = fmt(remainingSeconds);
+
+      // Color coding based on time remaining
+      timerEl.classList.remove('warning', 'danger');
+      if (remainingSeconds <= 300 && remainingSeconds > 60) {
+        timerEl.classList.add('warning');
+      } else if (remainingSeconds <= 60) {
+        timerEl.classList.add('danger');
+      }
+    }
+  }
+
+  // Function to update state display
+  function updateStateDisplay() {
+    const stateEl = document.getElementById('state');
+
+    if (stateEl && state) {
+      stateEl.textContent = state.charAt(0).toUpperCase() + state.slice(1);
+      stateEl.className = `state ${state}`;
+
+      // Update metadata
+      const detailedStateEl = document.getElementById('detailed-state');
+      if (detailedStateEl) {
+        detailedStateEl.textContent = state;
+      }
+    } else if (stateEl) {
+      stateEl.textContent = 'Loading...';
+      stateEl.className = 'state idle';
+    }
+  }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  window.refreshStudentStatuses = async () => {
+    try {
+      console.log('Refreshing student statuses...');
+      const response = await axios.get(`/api/exams/${examId}/timer/all-students-states`);
+      console.log('Student statuses response:', response.data);
+
+      const tbody = document.getElementById('student-status-tbody');
+      if (tbody) {
+        tbody.innerHTML = ''; // Clear existing rows
+
+        if (response.data.data && response.data.data.length > 0) {
+          response.data.data.forEach(student => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+              <td style="padding: 0.75rem; border-bottom: 1px solid #e5e7eb;">${student.student_id}</td>
+              <td style="padding: 0.75rem; border-bottom: 1px solid #e5e7eb;">${student.state}</td>
+              <td style="padding: 0.75rem; border-bottom: 1px solid #e5e7eb;">${fmt(student.remaining_seconds)}</td>
+              <td style="padding: 0.75rem; border-bottom: 1px solid #e5e7eb;">${student.student_adjust_seconds > 0 ? '+' : ''}${student.student_adjust_seconds}s</td>
+            `;
+            tbody.appendChild(row);
+          });
+        } else {
+          tbody.innerHTML = '<tr><td colspan="4" style="padding: 1rem; text-align: center; color: #6b7280;">No students found</td></tr>';
+        }
+      }
+      showStatus('Student statuses refreshed', 'success');
+    } catch (error) {
+      console.error('Failed to refresh student statuses:', error);
+      showStatus('Failed to refresh student statuses: ' + error.message, 'error');
+    }
+  };
 })();
 </script>
 </body>

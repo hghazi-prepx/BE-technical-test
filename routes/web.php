@@ -63,46 +63,6 @@ Route::get('/timer/{exam}', function (Exam $exam) {
     return view('timer', compact('exam', 'timer'));
 })->middleware('auth')->name('timer');
 
-// Test route for broadcasting (remove in production)
-Route::get('/test-broadcast/{exam}', function (Exam $exam) {
-    if (! Auth::check()) {
-        abort(403, 'Not authenticated');
-    }
-
-    $user = Auth::user();
-    $timer = ExamTimer::where('exam_id', $exam->id)->first();
-    if (! $timer) {
-        abort(404, 'Timer not found');
-    }
-
-    // Check if user has access to this exam
-    if (! $user->isProctorFor($exam->id) && ! $user->isRegisteredFor($exam->id)) {
-        abort(403, 'No access to this exam');
-    }
-
-    // Dispatch a test event
-    \App\Events\TimerSynced::dispatch($timer->fresh());
-
-    return response()->json([
-        'message' => 'Test event dispatched',
-        'timer_state' => $timer->state,
-        'user_role' => $user->role,
-        'user_id' => $user->id,
-        'exam_id' => $exam->id,
-        'has_access' => true,
-    ]);
-})->middleware('auth');
-
-// Simple WebSocket test route
-Route::get('/test-websocket', function () {
-    return response()->json([
-        'message' => 'WebSocket test endpoint',
-        'reverb_config' => config('broadcasting.connections.reverb'),
-        'broadcasting_driver' => config('broadcasting.default'),
-        'timestamp' => now()->toISOString(),
-    ]);
-});
-
 // Route to check current user's role and permissions
 Route::get('/check-user', function () {
     if (! Auth::check()) {
@@ -110,7 +70,7 @@ Route::get('/check-user', function () {
     }
 
     $user = Auth::user();
-    $examId = 1; // Default exam ID for testing
+    $examId = 1; // Default exam ID
 
     return response()->json([
         'authenticated' => true,
@@ -130,27 +90,6 @@ Route::get('/check-user', function () {
             'exam_id' => $examId,
             'has_access' => $user->isProctorFor($examId) || $user->isRegisteredFor($examId),
         ],
-    ]);
-})->middleware('auth');
-
-// Test route for timer state (remove in production)
-Route::get('/test-timer/{exam}', function (Exam $exam) {
-    if (! Auth::check() || Auth::user()->role !== 'admin') {
-        abort(403);
-    }
-
-    $timer = ExamTimer::where('exam_id', $exam->id)->first();
-    if (! $timer) {
-        abort(404, 'Timer not found');
-    }
-
-    return response()->json([
-        'timer_state' => $timer->state,
-        'started_at' => $timer->started_at,
-        'paused_at' => $timer->paused_at,
-        'paused_total_seconds' => $timer->paused_total_seconds,
-        'duration_seconds' => $timer->duration_seconds,
-        'version' => $timer->version,
     ]);
 })->middleware('auth');
 
