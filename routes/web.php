@@ -1,7 +1,168 @@
 <?php
 
+use App\Models\Exam;
+use App\Models\ExamTimer;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Broadcast;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
     return view('welcome');
 });
+
+Route::get('/login', function () {
+    return view('login');
+})->name('login');
+
+Route::post('/login', function (Request $request) {
+    $credentials = $request->validate([
+        'email' => 'required|email',
+        'password' => 'required',
+    ]);
+
+    if (Auth::attempt($credentials)) {
+        $request->session()->regenerate();
+
+        return redirect('/');
+    }
+
+    return back()->withErrors([
+        'email' => 'The provided credentials do not match our records.',
+    ]);
+});
+
+Route::post('/logout', function (Request $request) {
+    Auth::logout();
+    $request->session()->invalidate();
+    $request->session()->regenerateToken();
+
+    return redirect('/');
+})->name('logout');
+
+// Broadcasting authentication route
+Route::post('/broadcasting/auth', function (Request $request) {
+    return Broadcast::auth($request);
+})->middleware('auth');
+
+Route::get('/timer/{exam}', function (Exam $exam) {
+    if (! Auth::check()) {
+        return redirect()->route('login');
+    }
+
+    // Check if user has access to this exam
+    $user = Auth::user();
+    if (! $user->isProctorFor($exam->id) && ! $user->isRegisteredFor($exam->id)) {
+        abort(403, 'You do not have access to this exam.');
+    }
+
+    $timer = ExamTimer::firstOrCreate(['exam_id' => $exam->id], [
+        'duration_seconds' => $exam->default_duration_seconds,
+    ]);
+
+    return view('timer', compact('exam', 'timer'));
+})->middleware('auth')->name('timer');
+
+// Test route for broadcasting (remove in production)
+Route::get('/test-broadcast/{exam}', function (Exam $exam) {
+    if (! Auth::check()) {
+        abort(403, 'Not authenticated');
+    }
+
+    $user = Auth::user();
+    $timer = ExamTimer::where('exam_id', $exam->id)->first();
+    if (! $timer) {
+        abort(404, 'Timer not found');
+    }
+
+    // Check if user has access to this exam
+    if (! $user->isProctorFor($exam->id) && ! $user->isRegisteredFor($exam->id)) {
+        abort(403, 'No access to this exam');
+    }
+
+    // Dispatch a test event
+    \App\Events\TimerSynced::dispatch($timer->fresh());
+
+    return response()->json([
+        'message' => 'Test event dispatched',
+        'timer_state' => $timer->state,
+        'user_role' => $user->role,
+        'user_id' => $user->id,
+        'exam_id' => $exam->id,
+        'has_access' => true,
+    ]);
+})->middleware('auth');
+
+// Simple WebSocket test route
+Route::get('/test-websocket', function () {
+    return response()->json([
+        'message' => 'WebSocket test endpoint',
+        'reverb_config' => config('broadcasting.connections.reverb'),
+        'broadcasting_driver' => config('broadcasting.default'),
+        'timestamp' => now()->toISOString(),
+    ]);
+});
+
+// Route to check current user's role and permissions
+Route::get('/check-user', function () {
+    if (! Auth::check()) {
+        return response()->json(['authenticated' => false]);
+    }
+
+    $user = Auth::user();
+    $examId = 1; // Default exam ID for testing
+
+    return response()->json([
+        'authenticated' => true,
+        'user' => [
+            'id' => $user->id,
+            'name' => $user->name,
+            'email' => $user->email,
+            'role' => $user->role,
+        ],
+        'permissions' => [
+            'is_proctor_for_exam_1' => $user->isProctorFor($examId),
+            'is_registered_for_exam_1' => $user->isRegisteredFor($examId),
+            'can_view_timer' => $user->can('viewTimer', [\App\Models\Exam::class, $examId]),
+            'can_manage_timer' => $user->can('manageTimer', [\App\Models\Exam::class, $examId]),
+        ],
+        'exam_access' => [
+            'exam_id' => $examId,
+            'has_access' => $user->isProctorFor($examId) || $user->isRegisteredFor($examId),
+        ],
+    ]);
+})->middleware('auth');
+
+// Test route for timer state (remove in production)
+Route::get('/test-timer/{exam}', function (Exam $exam) {
+    if (! Auth::check() || Auth::user()->role !== 'admin') {
+        abort(403);
+    }
+
+    $timer = ExamTimer::where('exam_id', $exam->id)->first();
+    if (! $timer) {
+        abort(404, 'Timer not found');
+    }
+
+    return response()->json([
+        'timer_state' => $timer->state,
+        'started_at' => $timer->started_at,
+        'paused_at' => $timer->paused_at,
+        'paused_total_seconds' => $timer->paused_total_seconds,
+        'duration_seconds' => $timer->duration_seconds,
+        'version' => $timer->version,
+    ]);
+})->middleware('auth');
+
+// Route to start server time broadcasting
+Route::post('/start-server-time-broadcast', function () {
+    // Start the server time broadcasting command in the background
+    $process = new \Symfony\Component\Process\Process(['php', 'artisan', 'broadcast:server-time']);
+    $process->start();
+
+    return response()->json([
+        'message' => 'Server time broadcasting started',
+        'process_id' => $process->getPid(),
+        'status' => 'running',
+    ]);
+})->middleware('auth');

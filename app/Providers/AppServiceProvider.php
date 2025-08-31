@@ -19,6 +19,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        // Fix MySQL key length issue
+        \Illuminate\Support\Facades\Schema::defaultStringLength(191);
     }
 }
