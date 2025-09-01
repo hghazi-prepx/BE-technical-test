@@ -438,6 +438,24 @@
 
     <div class="state" id="state">Loading...</div>
 
+    <!-- Timer breakdown display -->
+    <div id="timer-breakdown" style="
+      margin: 1rem 0;
+      padding: 1rem;
+      background: #1f2937;
+      border-radius: 8px;
+      font-size: 0.875rem;
+      color: #d1d5db;
+    ">
+      <div><strong>Timer Breakdown:</strong></div>
+      <div>Base Duration: <span id="base-duration">--</span></div>
+      <div>Global Adjustments: <span id="global-adjustments">--</span></div>
+      <div>Student Adjustments: <span id="student-adjustments">--</span></div>
+      <div>Total Available: <span id="total-available">--</span></div>
+      <div>Elapsed: <span id="elapsed-time">--</span></div>
+      <div>Remaining: <span id="remaining-time">--</span></div>
+    </div>
+
     <div class="status" id="status"></div>
 
     @if(auth()->user() && in_array(auth()->user()->role, ['proctor', 'admin']))
@@ -460,7 +478,7 @@
 
     <div class="controls">
       <input id="adj" type="number" value="60" step="5" placeholder="Seconds" />
-      <button onclick="adjustAll()">Adjust Timer</button>
+      <button onclick="adjustTimer()" id="adjust-timer-btn">Adjust Timer</button>
     </div>
 
 
@@ -508,6 +526,8 @@ const userRole = document.querySelector('meta[name="user-role"]').content;
 
 console.log('Timer page initialized with:', { examId, userId, userRole });
 console.log('CSRF token:', document.querySelector('meta[name="csrf-token"]').content);
+console.log('User role from meta:', userRole);
+console.log('User role type:', typeof userRole);
 
 let state = 'idle';
 let duration = 0, startedAt = null, pausedAt = null, pausedTotal = 0, globalAdjust = 0, studentAdjust = 0, serverOffset = 0;
@@ -518,11 +538,39 @@ let lastUpdateTime = null;
 
 function iso(s) { return s ? new Date(s) : null; }
 function nowServer() { return new Date(Date.now() + serverOffset); }
-function pad(n){ return String(n).padStart(2,'0'); }
+function pad(n){
+  const result = String(n).padStart(2,'0');
+
+  // Debug logging for large numbers
+  if (n > 100) {
+    console.log('pad() function debug:', {
+      input: n,
+      inputType: typeof n,
+      result: result,
+      resultLength: result.length
+    });
+  }
+
+  return result;
+}
 function fmt(sec) {
   const h=Math.floor(sec/3600);
   const m=Math.floor((sec%3600)/60);
   const s=sec%60;
+
+  // Debug logging for large values
+  if (sec > 100000) {
+    console.log('fmt() function debug - large value:', {
+      inputSeconds: sec,
+      hours: h,
+      minutes: m,
+      seconds: s,
+      paddedHours: pad(h),
+      paddedMinutes: pad(m),
+      paddedSeconds: pad(s)
+    });
+  }
+
   return `${pad(h)}:${pad(m)}:${pad(s)}`;
 }
 
@@ -566,6 +614,7 @@ function remaining() {
 
   // Safety check for undefined state
   if (!state) {
+    console.log('Remaining calculation: No state, returning duration or 0');
     return duration || 0;
   }
 
@@ -577,20 +626,46 @@ function remaining() {
     elapsed = Math.floor((pausedAt - startedAt) / 1000) - pausedTotal;
   }
 
-  const r = duration + globalAdjust + studentAdjust - elapsed;
+  // Calculate total available time (base + adjustments)
+  const totalAvailableTime = duration + globalAdjust + studentAdjust;
 
-  // Debug logging for timing calculations
-  if (state === 'running' && Math.random() < 0.01) { // Log 1% of the time to avoid spam
-    console.log('Timer calculation debug:', {
-      state: state,
-      duration: duration,
-      globalAdjust: globalAdjust,
+  // Calculate remaining time
+  const r = totalAvailableTime - elapsed;
+
+  // Debug logging for time calculation
+  console.log('Timer calculation details:', {
+    duration: duration,
+    globalAdjust: globalAdjust,
+    studentAdjust: studentAdjust,
+    totalAvailableTime: totalAvailableTime,
+    elapsed: elapsed,
+    remaining: r,
+    state: state,
+    startedAt: startedAt,
+    now: T
+  });
+
+  // Debug logging for timing calculations (always log for debugging)
+  console.log('Timer calculation debug:', {
+    state: state,
+    duration: duration,
+    globalAdjust: globalAdjust,
+    studentAdjust: studentAdjust,
+    pausedTotal: pausedTotal,
+    elapsed: elapsed,
+    remaining: r,
+    startedAt: startedAt,
+    now: T,
+    hasStartedAt: !!startedAt,
+    hasPausedAt: !!pausedAt
+  });
+
+  // Additional debugging for studentAdjust
+  if (studentAdjust > 0) {
+    console.log('Student adjustment debug:', {
       studentAdjust: studentAdjust,
-      pausedTotal: pausedTotal,
-      elapsed: elapsed,
-      remaining: r,
-      startedAt: startedAt,
-      now: T
+      studentAdjustHours: studentAdjust / 3600,
+      source: 'remaining() function'
     });
   }
 
@@ -642,6 +717,9 @@ function render(){
     detailedStateEl.textContent = state;
   }
 
+  // Update timer breakdown display
+  updateTimerBreakdown();
+
   // Store last update time for performance tracking
   lastUpdateTime = Date.now();
 }
@@ -692,6 +770,24 @@ async function hydrate(){
     studentAdjust = t.student_adjust_seconds || 0;
     serverOffset = new Date(t.server_time) - new Date();
 
+    // Debug logging for initial hydration
+    console.log('Hydration debug - initial values:', {
+      duration: duration,
+      globalAdjust: globalAdjust,
+      studentAdjust: studentAdjust,
+      studentAdjustHours: studentAdjust / 3600,
+      totalAvailableTime: duration + globalAdjust + studentAdjust,
+      source: 'hydrate() function'
+    });
+
+    // Validate that studentAdjust is a reasonable number
+    if (studentAdjust > 0 && studentAdjust < 1000000) { // Between 0 and ~11.5 days
+      console.log('Student adjustment validated:', studentAdjust, 'seconds');
+    } else if (studentAdjust >= 1000000) {
+      console.error('Student adjustment seems corrupted (too large):', studentAdjust, 'seconds. Resetting to 0.');
+      studentAdjust = 0;
+    }
+
     document.getElementById('version').textContent = t.version;
 
     // Only start render interval if we have valid data
@@ -716,6 +812,34 @@ async function hydrate(){
     showStatus(`Failed to load timer state: ${error.response?.status} ${error.response?.statusText}`, 'error');
     updateConnectionStatus(false);
   }
+}
+
+function updateTimerBreakdown() {
+  const baseDurationEl = document.getElementById('base-duration');
+  const globalAdjustmentsEl = document.getElementById('global-adjustments');
+  const studentAdjustmentsEl = document.getElementById('student-adjustments');
+  const totalAvailableEl = document.getElementById('total-available');
+  const elapsedTimeEl = document.getElementById('elapsed-time');
+  const remainingTimeEl = document.getElementById('remaining-time');
+
+  if (baseDurationEl) baseDurationEl.textContent = fmt(duration);
+  if (globalAdjustmentsEl) globalAdjustmentsEl.textContent = globalAdjust > 0 ? `+${fmt(globalAdjust)}` : 'None';
+  if (studentAdjustmentsEl) studentAdjustmentsEl.textContent = studentAdjust > 0 ? `+${fmt(studentAdjust)}` : 'None';
+
+  const totalAvailable = duration + globalAdjust + studentAdjust;
+  if (totalAvailableEl) totalAvailableEl.textContent = fmt(totalAvailable);
+
+  // Calculate elapsed time
+  let elapsed = 0;
+  if (state === 'running' && startedAt) {
+    const T = serverTimeOffset ? new Date(Date.now() + serverTimeOffset) : nowServer();
+    elapsed = Math.floor((T - startedAt) / 1000) - pausedTotal;
+  } else if (state === 'paused' && startedAt && pausedAt) {
+    elapsed = Math.floor((pausedAt - startedAt) / 1000) - pausedTotal;
+  }
+
+  if (elapsedTimeEl) elapsedTimeEl.textContent = fmt(elapsed);
+  if (remainingTimeEl) remainingTimeEl.textContent = fmt(totalAvailable - elapsed);
 }
 
 function updateConnectionStatus(connected) {
@@ -923,7 +1047,7 @@ window.resetTimer = async () => {
   }
 }
 
-window.adjustAll = async () => {
+window.adjustTimer = async () => {
   const seconds = parseInt(document.getElementById('adj').value || 0, 10);
   if (seconds === 0) return;
 
@@ -1044,34 +1168,109 @@ window.adjustAll = async () => {
         version: e.version,
         timestamp: new Date().toISOString(),
         userRole: userRole,
-        userId: userId
+        userId: userId,
+        target_student_id: e.target_student_id,
+        action: e.action
       });
 
-    // Update timer state from broadcast
-    if (e.state) state = e.state;
-    if (e.duration_seconds) duration = e.duration_seconds;
-    if (e.started_at) startedAt = new Date(e.started_at);
-    if (e.paused_at) pausedAt = new Date(e.paused_at);
-    if (e.paused_total_seconds !== undefined) {
-      console.log('Updating pausedTotal from WebSocket:', pausedTotal, '->', e.paused_total_seconds);
-      pausedTotal = e.paused_total_seconds;
-    }
-    if (e.global_adjust_seconds !== undefined) globalAdjust = e.global_adjust_seconds;
-    if (e.server_time) serverOffset = new Date(e.server_time) - new Date();
+      // Check if this is an individual student operation
+      if (e.target_student_id && e.target_student_id !== '') {
+        console.log('Individual student timer event received for student:', e.target_student_id);
 
-    if (e.version) {
-      document.getElementById('version').textContent = e.version;
-    }
+        // If we're currently viewing this student's timer, update the display
+        const selectedStudentId = document.getElementById('timer-student-selector')?.value;
+        if (selectedStudentId == e.target_student_id) {
+          console.log('Updating display for selected student:', e.target_student_id);
 
-    // Force immediate render update for real-time response
-    render();
-    updateConnectionStatus(true);
+          // Update timer state from student-specific event
+          if (e.student_timer_state) {
+            const studentState = e.student_timer_state;
+            state = studentState.state;
+            startedAt = studentState.started_at ? new Date(studentState.started_at) : null;
+            pausedAt = studentState.paused_at ? new Date(studentState.paused_at) : null;
+            pausedTotal = studentState.paused_total_seconds || 0;
 
-    // Show status message for state changes
-    if (e.state && e.state !== 'idle') {
-      showStatus(`Timer ${e.state} via WebSocket`, 'success');
-    }
-  });
+            // Debug the student adjustment value before setting it
+            console.log('General timer event - student adjustment debug:', {
+              oldStudentAdjust: studentAdjust,
+              newStudentAdjust: studentState.student_adjust_seconds,
+              studentState: studentState
+            });
+
+            // Set student adjustment value with debug logging and validation
+            const newStudentAdjust = studentState.student_adjust_seconds || 0;
+            console.log('General timer event - setting studentAdjust:', {
+              oldValue: studentAdjust,
+              newValue: newStudentAdjust,
+              source: 'general timer event'
+            });
+
+            // Validate the student adjustment value
+            if (newStudentAdjust >= 0 && newStudentAdjust < 1000000) {
+              studentAdjust = newStudentAdjust;
+              console.log('Student adjustment set successfully:', studentAdjust, 'seconds');
+            } else {
+              console.error('Invalid student adjustment value:', newStudentAdjust, 'seconds. Keeping old value.');
+            }
+
+            console.log('Updated student timer state from WebSocket:', {
+              state: state,
+              startedAt: startedAt,
+              pausedAt: pausedAt,
+              pausedTotal: pausedTotal,
+              studentAdjust: studentAdjust
+            });
+          }
+
+          // Force immediate render update for real-time response
+          render();
+          updateConnectionStatus(true);
+
+          // Show status message for student-specific changes
+          if (e.action) {
+            showStatus(`Student timer ${e.action} via WebSocket`, 'success');
+          }
+
+          // Update student status table if available
+          if (typeof refreshStudentStatuses === 'function') {
+            setTimeout(() => refreshStudentStatuses(), 500);
+          }
+        }
+      } else {
+        // This is a global timer event (affecting all students)
+        console.log('Global timer event received');
+
+        // Update timer state from broadcast
+        if (e.state) state = e.state;
+        if (e.duration_seconds) duration = e.duration_seconds;
+        if (e.started_at) startedAt = new Date(e.started_at);
+        if (e.paused_at) pausedAt = new Date(e.paused_at);
+        if (e.paused_total_seconds !== undefined) {
+          console.log('Updating pausedTotal from WebSocket:', pausedTotal, '->', e.paused_total_seconds);
+          pausedTotal = e.paused_total_seconds;
+        }
+        if (e.global_adjust_seconds !== undefined) globalAdjust = e.global_adjust_seconds;
+        if (e.server_time) serverOffset = new Date(e.server_time) - new Date();
+
+        if (e.version) {
+          document.getElementById('version').textContent = e.version;
+        }
+
+        // Force immediate render update for real-time response
+        render();
+        updateConnectionStatus(true);
+
+        // Show status message for state changes
+        if (e.state && e.state !== 'idle') {
+          showStatus(`Timer ${e.state} via WebSocket`, 'success');
+        }
+
+        // Update student status table if available
+        if (typeof refreshStudentStatuses === 'function') {
+          setTimeout(() => refreshStudentStatuses(), 500);
+        }
+      }
+    });
 
   } catch (error) {
     console.error('Failed to subscribe to timer channel:', error);
@@ -1102,12 +1301,48 @@ window.adjustAll = async () => {
       studentCh.listen('.TimerSynced', (e) => {
         console.log('Student timer synced event received:', e);
 
-        // Update student-specific adjustments
-        if (e.target_student_id == userId) {
-          // Update student adjustment immediately
-          if (e.delta_seconds !== undefined) {
-            studentAdjust += e.delta_seconds;
-            console.log(`Student adjustment updated: ${studentAdjust} seconds`);
+                  // Update student-specific adjustments
+          if (e.target_student_id == userId) {
+            // Update student adjustment immediately
+            if (e.delta_seconds !== undefined) {
+              // The delta_seconds represents the total adjustment from the server
+              // This should replace the current adjustment, not accumulate
+
+              // Debug logging for delta_seconds
+              console.log('Student WebSocket event - delta_seconds received:', {
+                delta_seconds: e.delta_seconds,
+                oldStudentAdjust: studentAdjust
+              });
+
+              // Validate the delta_seconds value
+              if (e.delta_seconds >= 0 && e.delta_seconds < 1000000) {
+                console.log(`WebSocket event - updating studentAdjust:`, {
+                  oldValue: studentAdjust,
+                  newValue: e.delta_seconds,
+                  event: e
+                });
+                studentAdjust = e.delta_seconds;
+                console.log(`Student adjustment updated from server: ${studentAdjust} seconds`);
+              } else {
+                console.error('Invalid delta_seconds received:', e.delta_seconds, 'seconds. Ignoring update.');
+              }
+            }
+
+          // Update timer state from student-specific event
+          if (e.student_timer_state) {
+            const studentState = e.student_timer_state;
+            state = studentState.state;
+            startedAt = studentState.started_at ? new Date(studentState.started_at) : null;
+            pausedAt = studentState.paused_at ? new Date(studentState.paused_at) : null;
+            pausedTotal = studentState.paused_total_seconds || 0;
+
+            console.log('Updated student timer state from WebSocket:', {
+              state: state,
+              startedAt: startedAt,
+              pausedAt: pausedAt,
+              pausedTotal: pausedTotal,
+              studentAdjust: studentAdjust
+            });
           }
 
           // Force immediate render update
@@ -1117,12 +1352,123 @@ window.adjustAll = async () => {
           if (e.delta_seconds) {
             const sign = e.delta_seconds > 0 ? '+' : '';
             showStatus(`Student time adjusted by ${sign}${e.delta_seconds} seconds via WebSocket`, 'success');
+          } else if (e.action) {
+            showStatus(`Student timer ${e.action} via WebSocket`, 'success');
           }
         }
       });
     } catch (error) {
       console.error('Failed to subscribe to student channel:', error);
       showStatus('Failed to subscribe to student-specific updates', 'error');
+    }
+  }
+
+  // For proctors/admins, listen to individual student timer channels when viewing them
+  if (userRole === 'proctor' || userRole === 'admin') {
+    let currentStudentSubscription = null;
+
+    // Function to subscribe to individual student timer channel
+    function subscribeToStudentTimer(studentId) {
+      if (!studentId) return;
+
+      // Unsubscribe from previous student channel if exists
+      if (currentStudentSubscription) {
+        console.log('Unsubscribing from previous student timer channel');
+        currentStudentSubscription.unsubscribe();
+        currentStudentSubscription = null;
+      }
+
+      try {
+        const studentCh = Echo.private(`exams.${examId}.students.${studentId}.timer`);
+        console.log('Proctor/Admin subscribed to student timer channel:', `exams.${examId}.students.${studentId}.timer`);
+
+        const subscription = studentCh.listen('.TimerSynced', (e) => {
+          console.log('Proctor/Admin received student timer event:', e);
+
+          // Update timer display if this is the currently selected student
+          const selectedStudentId = document.getElementById('timer-student-selector')?.value;
+          if (selectedStudentId == studentId) {
+            console.log('Updating proctor display for student:', studentId);
+
+            // Update timer state from student-specific event
+            if (e.student_timer_state) {
+              const studentState = e.student_timer_state;
+              state = studentState.state;
+              startedAt = studentState.started_at ? new Date(studentState.started_at) : null;
+              pausedAt = studentState.paused_at ? new Date(studentState.paused_at) : null;
+              pausedTotal = studentState.paused_total_seconds || 0;
+
+              // Set student adjustment value with debug logging and validation
+              const newStudentAdjust = studentState.student_adjust_seconds || 0;
+              console.log('Proctor timer event - setting studentAdjust:', {
+                oldValue: studentAdjust,
+                newValue: newStudentAdjust,
+                source: 'proctor timer event'
+              });
+
+              // Validate the student adjustment value
+              if (newStudentAdjust >= 0 && newStudentAdjust < 1000000) {
+                studentAdjust = newStudentAdjust;
+                console.log('Student adjustment set successfully:', studentAdjust, 'seconds');
+              } else {
+                console.error('Invalid student adjustment value:', newStudentAdjust, 'seconds. Keeping old value.');
+              }
+
+              console.log('Updated proctor timer state from WebSocket:', {
+                state: state,
+                startedAt: startedAt,
+                pausedAt: pausedAt,
+                pausedTotal: pausedTotal,
+                studentAdjust: studentAdjust
+              });
+            }
+
+            // Force immediate render update for real-time response
+            render();
+
+            // Show status message for student-specific changes
+            if (e.action) {
+              showStatus(`Student timer ${e.action} via WebSocket`, 'success');
+            }
+
+            // Update student status table
+            if (typeof refreshStudentStatuses === 'function') {
+              setTimeout(() => refreshStudentStatuses(), 500);
+            }
+          }
+        });
+
+        // Store the subscription for later cleanup
+        currentStudentSubscription = subscription;
+      } catch (error) {
+        console.error('Failed to subscribe to student timer channel:', error);
+      }
+    }
+
+    // Subscribe to student timer channel when student selection changes
+    const studentSelector = document.getElementById('timer-student-selector');
+    if (studentSelector) {
+      studentSelector.addEventListener('change', function() {
+        const selectedStudentId = this.value;
+        if (selectedStudentId) {
+          console.log('Proctor/Admin selected student, subscribing to timer channel:', selectedStudentId);
+          subscribeToStudentTimer(selectedStudentId);
+        } else {
+          // Switching back to default timer, unsubscribe from student channel
+          if (currentStudentSubscription) {
+            console.log('Switching to default timer, unsubscribing from student channel');
+            currentStudentSubscription.unsubscribe();
+            currentStudentSubscription = null;
+          }
+        }
+      });
+
+      // Check if there's already a selected student and subscribe to their channel
+      const initialSelectedStudentId = studentSelector.value;
+      if (initialSelectedStudentId) {
+        console.log('Initial student selected, subscribing to timer channel:', initialSelectedStudentId);
+        subscribeToStudentTimer(initialSelectedStudentId);
+      }
     }
   }
 
@@ -1180,24 +1526,54 @@ window.adjustAll = async () => {
     }
   }, 3000);
 
-  // Populate users dropdown when page loads
-  if (userRole === 'proctor' || userRole === 'admin') {
-    populateUsersDropdown();
-  }
-
   // Populate individual student dropdown for admin/proctor
+  console.log('Checking user role for dropdown population...');
+  console.log('User role:', userRole);
+  console.log('User role comparison with proctor:', userRole === 'proctor');
+  console.log('User role comparison with admin:', userRole === 'admin');
+
   if (userRole === 'proctor' || userRole === 'admin') {
-    populateIndividualStudentDropdown();
-    populateTimerStudentSelector();
+    console.log('User is proctor/admin, will populate dropdowns');
+    // Delay the population to ensure authentication is established
+    setTimeout(() => {
+      console.log('Populating dropdowns after delay...');
+      populateIndividualStudentDropdown();
+      populateTimerStudentSelector();
+    }, 1000);
+  } else {
+    console.log('User is not proctor/admin, role:', userRole);
   }
 
-  // Load default timer initially
-  await loadDefaultTimer();
+  // Load appropriate timer based on user role
+  if (userRole === 'student') {
+    // Students should see their own individual timer state
+    console.log('User is student, loading individual timer state');
+    await loadStudentTimer(userId);
+  } else {
+    // Proctors/admins see the default exam timer
+    console.log('User is proctor/admin, loading default exam timer');
+    await loadDefaultTimer();
+
+        // Hide all timer display elements initially for proctors/admins since they start with default option
+    const timerDisplay = document.getElementById('timer');
+    const stateDisplay = document.getElementById('state');
+    const detailedStateDisplay = document.getElementById('detailed-state');
+
+    if (timerDisplay) timerDisplay.style.display = 'none';
+    if (stateDisplay) stateDisplay.style.display = 'none';
+    if (detailedStateDisplay) detailedStateDisplay.style.display = 'none';
+
+    // Set initial adjust button text for all students
+    const adjustBtn = document.getElementById('adjust-timer-btn');
+    if (adjustBtn) {
+      adjustBtn.textContent = 'Adjust All Students Timer';
+    }
+  }
 
   // Function to populate individual student dropdown
   async function populateIndividualStudentDropdown() {
     try {
-      const response = await axios.get(`/api/exams/${examId}/users`);
+      const response = await axios.get(`/timer/${examId}/users`);
       const users = response.data;
 
       const select = document.getElementById('individual-student-id');
@@ -1218,8 +1594,15 @@ window.adjustAll = async () => {
   // Function to populate timer student selector
   async function populateTimerStudentSelector() {
     try {
-      const response = await axios.get(`/api/exams/${examId}/users`);
+      console.log('Attempting to populate timer student selector...');
+      console.log('Making API call to:', `/timer/${examId}/users`);
+
+      const response = await axios.get(`/timer/${examId}/users`);
+      console.log('API response received:', response);
+      console.log('Response data:', response.data);
+
       const users = response.data;
+      console.log('Users found:', users.length);
 
       const select = document.getElementById('timer-student-selector');
       if (select) {
@@ -1232,11 +1615,18 @@ window.adjustAll = async () => {
           select.appendChild(option);
         });
 
+        console.log('Student selector populated with', users.length, 'users');
+
         // Add event listener for timer switching
         select.addEventListener('change', handleTimerStudentChange);
+      } else {
+        console.error('Timer student selector element not found');
       }
     } catch (error) {
       console.error('Failed to load timer student selector:', error);
+      console.error('Error response:', error.response);
+      console.error('Error status:', error.response?.status);
+      console.error('Error data:', error.response?.data);
     }
   }
 
@@ -1251,13 +1641,30 @@ window.adjustAll = async () => {
     console.log('Student selection changed - Selected ID:', selectedStudentId, 'Type:', typeof selectedStudentId);
 
     if (!selectedStudentId) {
-      // Show default exam timer
+      // Hide student info and timer display for default option
       studentInfo.style.display = 'none';
+
+      // Hide all timer display elements when default option is selected
+      const timerDisplay = document.getElementById('timer');
+      const stateDisplay = document.getElementById('state');
+      const detailedStateDisplay = document.getElementById('detailed-state');
+
+      if (timerDisplay) timerDisplay.style.display = 'none';
+      if (stateDisplay) stateDisplay.style.display = 'none';
+      if (detailedStateDisplay) detailedStateDisplay.style.display = 'none';
+
       // Update control mode indicator
       if (controlModeIndicator) {
         controlModeIndicator.textContent = 'Controlling: All Students';
         console.log('Control mode set to: All Students');
       }
+
+      // Update adjust button text for all students
+      const adjustBtn = document.getElementById('adjust-timer-btn');
+      if (adjustBtn) {
+        adjustBtn.textContent = 'Adjust All Students Timer';
+      }
+
       // Reset to default timer state
       await loadDefaultTimer();
       return;
@@ -1273,11 +1680,20 @@ window.adjustAll = async () => {
 
       if (studentTimer.student_adjust_seconds !== 0) {
         studentAdjustment.textContent = ` (${studentTimer.student_adjust_seconds > 0 ? '+' : ''}${studentTimer.student_adjust_seconds}s adjustment)`;
-    } else {
+      } else {
         studentAdjustment.textContent = '';
       }
 
       studentInfo.style.display = 'block';
+
+      // Show all timer display elements when a specific student is selected
+      const timerDisplay = document.getElementById('timer');
+      const stateDisplay = document.getElementById('state');
+      const detailedStateDisplay = document.getElementById('detailed-state');
+
+      if (timerDisplay) timerDisplay.style.display = 'block';
+      if (stateDisplay) stateDisplay.style.display = 'block';
+      if (detailedStateDisplay) detailedStateDisplay.style.display = 'block';
 
       // Update control mode indicator
       if (controlModeIndicator) {
@@ -1285,8 +1701,21 @@ window.adjustAll = async () => {
         console.log('Control mode set to:', studentTimer.student_name);
       }
 
+      // Update adjust button text for individual student
+      const adjustBtn = document.getElementById('adjust-timer-btn');
+      if (adjustBtn) {
+        adjustBtn.textContent = `Adjust ${studentTimer.student_name}'s Timer`;
+      }
+
       // Update the timer display with student's timer
       await loadStudentTimer(selectedStudentId);
+
+      // Subscribe to this student's timer channel for real-time updates
+      if (userRole === 'proctor' || userRole === 'admin') {
+        // Trigger the change event to subscribe to the student timer channel
+        const event = new Event('change');
+        document.getElementById('timer-student-selector').dispatchEvent(event);
+      }
 
     } catch (error) {
       console.error('Failed to load student timer:', error);
@@ -1326,8 +1755,11 @@ window.adjustAll = async () => {
   // Function to load specific student timer
   async function loadStudentTimer(studentId) {
     try {
+      console.log('Loading student timer for student ID:', studentId);
       const response = await axios.get(`/api/exams/${examId}/timer/student/${studentId}`);
       const studentTimer = response.data;
+
+      console.log('Student timer data received:', studentTimer);
 
       // Update timer state with student's specific data
       state = studentTimer.state;
@@ -1338,13 +1770,30 @@ window.adjustAll = async () => {
       globalAdjust = studentTimer.global_adjust_seconds || 0;
       studentAdjust = studentTimer.student_adjust_seconds || 0;
 
-            // Update display
+      console.log('Timer variables updated:', {
+        state: state,
+        duration: duration,
+        startedAt: startedAt,
+        pausedAt: pausedAt,
+        pausedTotal: pausedTotal,
+        globalAdjust: globalAdjust,
+        studentAdjust: studentAdjust
+      });
+
+      // Update display
       updateTimerDisplay();
       updateStateDisplay();
 
       // Start render interval if not already running and we have valid data
       if (!renderInterval && state && duration > 0) {
         renderInterval = setInterval(render, 100);
+        console.log('Render interval started for student timer');
+      } else {
+        console.log('Render interval not started:', {
+          hasRenderInterval: !!renderInterval,
+          hasState: !!state,
+          hasDuration: duration > 0
+        });
       }
 
     } catch (error) {

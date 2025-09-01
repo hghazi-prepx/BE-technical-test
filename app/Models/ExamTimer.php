@@ -64,4 +64,20 @@ class ExamTimer extends Model
     {
         return $this->hasMany(TimerAdjustment::class)->where('student_id', $studentId);
     }
+
+    /**
+     * Get all student timer states for this timer
+     */
+    public function studentTimerStates(): HasMany
+    {
+        return $this->hasMany(StudentTimerState::class);
+    }
+
+    /**
+     * Get timer state for a specific student
+     */
+    public function getStudentTimerState(int $studentId): ?StudentTimerState
+    {
+        return $this->studentTimerStates()->where('student_id', $studentId)->first();
+    }
 }

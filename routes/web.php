@@ -63,6 +63,25 @@ Route::get('/timer/{exam}', function (Exam $exam) {
     return view('timer', compact('exam', 'timer'));
 })->middleware('auth')->name('timer');
 
+// Route to get users for dropdown (web route to maintain session)
+Route::get('/timer/{exam}/users', function (Exam $exam) {
+    if (! Auth::check()) {
+        abort(401, 'Unauthenticated');
+    }
+
+    $user = Auth::user();
+    if (! $user->isProctorFor($exam->id)) {
+        abort(403, 'Unauthorized');
+    }
+
+    $users = \App\Models\User::select('id', 'name', 'email')
+        ->where('role', 'student')
+        ->orderBy('name')
+        ->get();
+
+    return response()->json($users);
+})->middleware('auth')->name('timer.users');
+
 // Route to check current user's role and permissions
 Route::get('/check-user', function () {
     if (! Auth::check()) {

@@ -24,6 +24,7 @@ class StudentTimerControlRequest extends FormRequest
     {
         return [
             'student_id' => ['required', 'integer', 'exists:users,id'],
+            'seconds' => ['nullable', 'integer', 'min:-18000', 'max:18000'], // Optional, but if provided must be valid
         ];
     }
 
@@ -38,6 +39,9 @@ class StudentTimerControlRequest extends FormRequest
             'student_id.required' => 'Please select a student.',
             'student_id.integer' => 'Invalid student ID format.',
             'student_id.exists' => 'The selected student does not exist.',
+            'seconds.integer' => 'Seconds must be a whole number.',
+            'seconds.min' => 'Adjustment cannot be less than -5 hours.',
+            'seconds.max' => 'Adjustment cannot be more than +5 hours.',
         ];
     }
 }

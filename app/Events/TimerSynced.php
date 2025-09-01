@@ -21,6 +21,7 @@ class TimerSynced implements ShouldBroadcastNow
         public ?int $studentId = null,
         public ?int $deltaSeconds = null,
         public ?string $action = null,
+        public $studentTimerState = null,
     ) {}
 
     /**
@@ -52,7 +53,7 @@ class TimerSynced implements ShouldBroadcastNow
      */
     public function broadcastWith(): array
     {
-        return [
+        $data = [
             'exam_id' => $this->timer->exam_id,
             'state' => $this->timer->state,
             'duration_seconds' => $this->timer->duration_seconds,
@@ -66,5 +67,19 @@ class TimerSynced implements ShouldBroadcastNow
             'action' => $this->action,
             'server_time' => now()->toIso8601String(),
         ];
+
+        // Add student-specific timer state if available
+        if ($this->studentTimerState) {
+            $data['student_timer_state'] = [
+                'state' => $this->studentTimerState->state,
+                'started_at' => optional($this->studentTimerState->started_at)->toIso8601String(),
+                'paused_at' => optional($this->studentTimerState->paused_at)->toIso8601String(),
+                'paused_total_seconds' => $this->studentTimerState->paused_total_seconds,
+                'student_adjust_seconds' => $this->studentTimerState->student_adjust_seconds,
+                'version' => $this->studentTimerState->version,
+            ];
+        }
+
+        return $data;
     }
 }

@@ -101,15 +101,41 @@ php artisan reverb:start
 
 Open your browser to `http://localhost:8000`
 
-## Demo Accounts
+## User Accounts
 
-The seeder creates these test accounts:
+The system includes the following user accounts for testing and demonstration:
 
-| Role | Email | Password | Permissions |
-|------|-------|----------|-------------|
-| Proctor | proctor@example.com | password | Can manage timers |
-| Student 1 | student1@example.com | password | View timer only |
-| Student 2 | student2@example.com | password | View timer only |
+### Admin Users
+| ID | Name | Email | Password | Role | Permissions |
+|----|------|-------|----------|------|-------------|
+| 2 | Admin User | admin@example.com | password | admin | Full system access, can manage all timers and users |
+
+### Proctor Users
+| ID | Name | Email | Password | Role | Permissions |
+|----|------|-------|----------|------|-------------|
+| 3 | John Proctor | proctor@example.com | password | proctor | Can manage timers, start/pause/resume/reset, adjust time for all students |
+| 4 | Sarah Instructor | instructor@example.com | password | proctor | Same permissions as John Proctor |
+
+### Student Users
+| ID | Name | Email | Password | Role | Permissions |
+|----|------|-------|----------|------|-------------|
+| 1 | Test User | test@example.com | password | student | View timer only, cannot control timer |
+| 5 | Alice Student | student1@example.com | password | student | View timer only, can receive individual time adjustments |
+| 6 | Bob Student | student2@example.com | password | student | View timer only, can receive individual time adjustments |
+| 7 | Charlie Student | student3@example.com | password | student | View timer only, can receive individual time adjustments |
+
+### Quick Login Reference
+For testing purposes, you can use any of these accounts:
+
+**Proctor/Admin Testing:**
+- `admin@example.com` / `password` (Full access)
+- `proctor@example.com` / `password` (Timer management)
+- `instructor@example.com` / `password` (Timer management)
+
+**Student Testing:**
+- `student1@example.com` / `password` (Individual adjustments)
+- `student2@example.com` / `password` (Individual adjustments)
+- `student3@example.com` / `password` (Individual adjustments)
 
 ## Testing the System
 
