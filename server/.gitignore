@@ -1,157 +1,69 @@
-# compiled output
-/dist
-/node_modules
-
-# Logs
-logs
-*.log
-npm-debug.log*
-pnpm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-lerna-debug.log*
-
-# OS
-.DS_Store
-
-# Tests
-coverage/
-*.lcov
-
-# IDEs and editors
-.idea/
-.project
-.classpath
-.c9/
-*.launch
-.settings/
-*.sublime-workspace
-.vscode/
-
-# IDE - VSCode
-.vscode/*
-!.vscode/settings.json
-!.vscode/tasks.json
-!.vscode/launch.json
-!.vscode/extensions.json
-
-# dotenv environment variable files
-.env
-.env.development.local
-.env.test.local
-.env.production.local
-.env.local
-
-# Runtime data
-pids
-*.pid
-*.seed
-*.pid.lock
-
-# Coverage directory used by tools like istanbul
-coverage/
-*.lcov
-
-# nyc test coverage
-.nyc_output
-
-# Dependency directories
+# dependencies
+node_modules/
 jspm_packages/
 
-# Optional npm cache directory
-.npm
+# build outputs
+build/
+dist/
+.next/
+.nuxt/
+out/
+storybook-static/
 
-# Optional eslint cache
+# caches
+.cache/
+.parcel-cache/
+.rpt2_cache/
+.rts2_cache_*/
 .eslintcache
-
-# Optional stylelint cache
 .stylelintcache
 
-# Microbundle cache
-.rpt2_cache/
-.rts2_cache_cjs/
-.rts2_cache_es/
-.rts2_cache_umd/
+# logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
 
-# Optional REPL history
-.node_repl_history
+# environment files
+.env
+.env.*.local
 
-# Output of 'npm pack'
-*.tgz
+# coverage
+coverage/
+*.lcov
+.nyc_output/
 
-# Yarn Integrity file
-.yarn-integrity
-
-# parcel-bundler cache (https://parceljs.org/)
-.cache
-.parcel-cache
-
-# Next.js build output
-.next
-
-# Nuxt.js build / generate output
-.nuxt
-dist
-
-# Gatsby files
-.cache/
-public
-
-# Storybook build outputs
-.out
-.storybook-out
-
-# Temporary folders
-tmp/
-temp/
-
-# Editor directories and files
+# misc
+.DS_Store
+Thumbs.db
 *.swp
 *.swo
 *~
+.idea/
+.vscode/
+*.tsbuildinfo
 
-# OS generated files
-.DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
-Thumbs.db
 
-# Database files
-*.db
-*.sqlite
-*.sqlite3
+package-lock.json
+# yarn.lock
+# pnpm-lock.yaml
 
-# Docker
+# docker (اختياري)
 .dockerignore
 docker-compose.override.yml
 
-# Backup files
+# backup
 *.bak
 *.backup
 *.old
 
-# Test files
-test-results/
-coverage/
+# databases
+*.db
+*.sqlite
+*.sqlite3
 
-# Documentation build
-docs/build/
-docs/_build/
-
-# Local development
+# local
 .local/
-
-# NestJS specific
-src/**/*.js.map
-src/**/*.d.ts.map
-
-# TypeScript
-*.tsbuildinfo
-
-# Package lock files
-package-lock.json
-yarn.lock
-pnpm-lock.yaml
+tmp/
+temp/
