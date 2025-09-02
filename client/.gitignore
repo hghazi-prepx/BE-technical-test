@@ -1,46 +1,29 @@
-# compiled output
-dist/
-node_modules/
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
-# Logs
-logs
-*.log
-npm-debug.log*
-pnpm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-lerna-debug.log*
+# dependencies
+/node_modules
+/.pnp
+.pnp.js
 
-# OS
+# testing
+/coverage
+
+# production
+/build
+
+# misc
 .DS_Store
-
-# Tests
-coverage/
-*.lcov
-
-# IDEs and editors
-.idea/
-.project
-.classpath
-.c9/
-*.launch
-.settings/
-*.sublime-workspace
-.vscode/
-
-# IDE - VSCode
-.vscode/*
-!.vscode/settings.json
-!.vscode/tasks.json
-!.vscode/launch.json
-!.vscode/extensions.json
-
-# dotenv environment variable files
-.env
+.env.local
 .env.development.local
 .env.test.local
 .env.production.local
-.env.local
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
 
 # Runtime data
 pids
@@ -82,6 +65,13 @@ jspm_packages/
 # Yarn Integrity file
 .yarn-integrity
 
+# dotenv environment variable files
+.env
+.env.development.local
+.env.test.local
+.env.production.local
+.env.local
+
 # parcel-bundler cache (https://parceljs.org/)
 .cache
 .parcel-cache
@@ -106,6 +96,8 @@ tmp/
 temp/
 
 # Editor directories and files
+.vscode/
+.idea/
 *.swp
 *.swo
 *~
@@ -144,14 +136,67 @@ docs/_build/
 # Local development
 .local/
 
-# NestJS specific
-src/**/*.js.map
-src/**/*.d.ts.map
+# React specific
+# See https://facebook.github.io/create-react-app/docs/deployment for more information.
 
-# TypeScript
-*.tsbuildinfo
+# Create React App
+# The build folder will be ignored by git by default.
+# You can change this behavior by adding the following line to your .gitignore file.
+# !build
+
+# Storybook build outputs
+.out
+.storybook-out
+
+# Temporary folders
+tmp/
+temp/
+
+# Editor directories and files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Docker
+.dockerignore
+docker-compose.override.yml
+
+# Backup files
+*.bak
+*.backup
+*.old
+
+# Test files
+test-results/
+coverage/
+
+# Documentation build
+docs/build/
+docs/_build/
+
+# Local development
+.local/
 
 # Package lock files
 package-lock.json
 yarn.lock
 pnpm-lock.yaml
+
+# TypeScript
+*.tsbuildinfo
