@@ -104,7 +104,7 @@ cd prep_doctor
 
 ```bash
 cd server
-npm install
+npm install --legacy-peer-deps
 
 # Create .env file with database credentials
 cp .env.example .env
