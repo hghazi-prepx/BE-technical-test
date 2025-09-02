@@ -1,0 +1,68 @@
+# dependencies
+node_modules/
+jspm_packages/
+
+# build outputs
+build/
+dist/
+.next/
+.nuxt/
+out/
+storybook-static/
+
+# caches
+.cache/
+.parcel-cache/
+.rpt2_cache/
+.rts2_cache_*/
+.eslintcache
+.stylelintcache
+
+# logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# environment files
+.env
+.env.*.local
+
+# coverage
+coverage/
+*.lcov
+.nyc_output/
+
+# misc
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+.idea/
+.vscode/
+*.tsbuildinfo
+
+package-lock.json
+# yarn.lock
+# pnpm-lock.yaml
+
+# docker (اختياري)
+.dockerignore
+docker-compose.override.yml
+
+# backup
+*.bak
+*.backup
+*.old
+
+# databases
+*.db
+*.sqlite
+*.sqlite3
+
+# local
+.local/
+tmp/
+temp/

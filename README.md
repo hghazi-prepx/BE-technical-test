@@ -1,38 +1,309 @@
-# PrepX Backend Technical Test
+# Prep Doctor - Exam Management System
 
-## About PrepX
-PrepX is a robust Learning Management System (LMS) designed to empower dental students in their preparation for professional examinations. Our platform provides a comprehensive suite of tools to create, manage, and deliver online exams, ensuring an efficient and engaging learning experience. At PrepX, we prioritize scalability, reliability, and real-time functionality to support our users effectively. As part of our ongoing efforts to enhance the platform, we are seeking skilled backend developers to contribute to the development of critical features.
+A comprehensive exam management system with real-time WebSocket integration, built with NestJS backend and React frontend.
 
-## Task Description
-For this technical test, your task is to implement a real-time timer synchronization feature for one of our online exams. The feature requires the following:
+## 🚀 Project Overview
 
-- **API Development**: Design and implement a backend API to manage a timer for an online exam. The timer must be synchronized across all students participating in the exam. The API should include endpoints to:
-  - Start, pause, and reset the timer for an exam.
-  - Allow a trainee (instructor) to add or subtract time for either all students or specific individuals during the exam.
-  - Ensure all updates to the timer are reflected in real-time for all connected clients.
-- **Client Implementation**: Create a simple webpage that displays the synchronized timer and reflects any updates (e.g., time added or subtracted) in real-time. The webpage should serve as a client to validate your API implementation.
-- **Validation**: Ensure the solution is robust, handles edge cases (e.g., network disruptions, concurrent updates), and maintains data consistency across clients.
+Prep Doctor is a modern exam management system that allows users to:
 
-## Technical Requirements
-- Use a backend framework of your choice, ensuring the solution is scalable and follows RESTful principles where applicable.
-- Include clear documentation on how to set up and run both the backend API and the client webpage.
-- Ensure the solution includes basic error handling and validation.
+-   **Create and manage exams** with configurable durations
+-   **Take exams in real-time** with live timers and pause/resume functionality
+-   **Monitor exam progress** with live updates across multiple devices
+-   **Manage exam states** automatically (Pending → InProgress → Paused → Completed/Expired)
 
-## Submission Instructions
-1. Fork the provided repository at [this repo](https://github.com/hghazi-prepx/BE-technical-test).
-2. Implement the feature as described, including both the backend API and the client webpage.
-3. Include a README file with:
-   - Instructions to set up and run the backend and client.
-   - A brief explanation of your technical choices.
-   - Any assumptions made during implementation.
-4. Create a pull request to the test repository with your changes.
+## 🏗️ Architecture
 
-## Evaluation Criteria
-Your submission will be evaluated based on:
-- Correctness and functionality of the timer synchronization feature.
-- Code quality, including adherence to best practices, modularity, and readability.
-- Robustness of the solution and handling of edge cases.
-- Clarity and completeness of documentation.
-- Efficiency and scalability of the solution.
+```
+prep_doctor/
+├── server/                 # NestJS Backend
+│   ├── src/
+│   │   ├── auth/          # Authentication & JWT
+│   │   ├── exam/          # Exam management & WebSocket
+│   │   ├── user/          # User management
+│   │   └── database/      # Database seeding
+│   ├── package.json
+│   └── README.md
+├── client/                 # React Frontend
+│   ├── src/
+│   │   ├── components/    # Reusable UI components
+│   │   ├── pages/         # Application pages
+│   │   ├── services/      # API & WebSocket services
+│   │   └── hooks/         # Custom React hooks
+│   ├── package.json
+│   └── README.md
+└── README.md               # This file
+```
 
-We look forward to reviewing your implementation. Best of luck!
+## ✨ Key Features
+
+### 🔐 Authentication
+
+-   JWT-based user authentication
+-   Role-based access control (Admin, User)
+-   Secure password hashing
+
+### 📝 Exam Management
+
+-   Create exams with custom durations
+-   Real-time exam status tracking
+-   Automatic status transitions
+-   Pause/resume functionality
+
+### 🌐 Real-time Communication
+
+-   WebSocket integration for live updates
+-   Multi-tab synchronization
+-   Live timer updates
+-   Instant status broadcasting
+
+### ⏱️ Timer System
+
+-   Accurate countdown timers
+-   Pause time tracking
+-   Progress visualization
+-   Automatic expiration handling
+
+## 🛠️ Technology Stack
+
+### Backend
+
+-   **Framework**: NestJS 10.x
+-   **Language**: TypeScript
+-   **Database**: PostgreSQL
+-   **ORM**: TypeORM
+-   **WebSockets**: Socket.IO
+-   **Authentication**: JWT + Passport
+-   **Scheduling**: Cron jobs
+
+### Frontend
+
+-   **Framework**: React 18
+-   **Language**: TypeScript
+-   **Styling**: Tailwind CSS
+-   **Routing**: React Router v6
+-   **State Management**: React Hooks
+-   **WebSockets**: Socket.IO Client
+
+## 🚀 Quick Start
+
+### Prerequisites
+
+-   Node.js (v16 or higher)
+-   npm or yarn
+-   PostgreSQL database
+-   Git
+
+### 1. Clone Repository
+
+```bash
+git clone <repository-url>
+cd prep_doctor
+```
+
+### 2. Backend Setup
+
+```bash
+cd server
+npm install
+
+# Create .env file with database credentials
+cp .env.example .env
+# Edit .env with your database settings
+
+# Start development server
+npm run start:dev
+```
+
+### 3. Frontend Setup
+
+```bash
+cd client
+npm install
+
+# Start development server
+npm start
+```
+
+### 4. Access Application
+
+-   **Backend**: http://localhost:3000
+-   **Frontend**: http://localhost:3001
+-   **Default Login**: admin / 12345678
+
+## 📡 API Documentation
+
+### Authentication
+
+-   `POST /auth/login` - User login
+
+### Exams
+
+-   `GET /exams` - List all exams
+-   `POST /exams` - Create new exam
+-   `GET /exams/:id` - Get exam details
+-   `PATCH /exams/:id/pause` - Pause exam
+-   `POST /exams/:id/unpause` - Resume exam
+
+### WebSocket Events
+
+-   `ExamUpdated-{examId}` - Real-time exam updates
+
+## 🔌 Real-time Features
+
+### WebSocket Integration
+
+-   **Automatic Connection** - Connects on app startup
+-   **Event Broadcasting** - All clients receive updates
+-   **Room Management** - Exam-specific communication
+-   **Connection Status** - Visual connection indicators
+
+### Live Updates
+
+-   **Exam Status Changes** - Instant status updates
+-   **Timer Synchronization** - Multi-tab timer sync
+-   **Pause/Resume** - Real-time control updates
+
+## 🧪 Testing
+
+### Backend Testing
+
+```bash
+cd server
+npm run test          # Unit tests
+npm run test:e2e      # E2E tests
+npm run test:cov      # Coverage report
+```
+
+### Frontend Testing
+
+```bash
+cd client
+npm test              # Run test suite
+npm run build         # Production build
+```
+
+## 📊 Database Schema
+
+### Users
+
+-   `id`, `username`, `password`, `role`
+
+### Exams
+
+-   `id`, `name`, `startDate`, `period`, `status`, `pausedAt`, `totalPausedTime`, `traineeId`, `createdAt`
+
+### Relationships
+
+-   Users can create multiple exams
+-   Exams track pause/resume history
+-   Automatic status management via cron jobs
+
+## 🚨 Troubleshooting
+
+### Common Issues
+
+1. **WebSocket Connection Failed**
+
+    - Check backend server is running
+    - Verify CORS configuration
+    - Check browser console for errors
+
+2. **Timer Calculation Errors**
+
+    - Verify exam data format
+    - Check time unit consistency
+    - Review console logs
+
+3. **Database Connection Issues**
+    - Verify PostgreSQL is running
+    - Check database credentials
+    - Ensure database exists
+
+### Debug Information
+
+-   Extensive console logging
+-   WebSocket connection status
+-   API request/response details
+-   Timer calculation breakdown
+
+## 🔄 Development Workflow
+
+1. **Feature Development**
+
+    - Create feature branch
+    - Implement backend API
+    - Implement frontend UI
+    - Test integration
+    - Submit pull request
+
+2. **Testing Strategy**
+
+    - Unit tests for business logic
+    - Integration tests for API
+    - Manual testing for UI/UX
+    - WebSocket functionality verification
+
+3. **Code Quality**
+    - TypeScript strict mode
+    - ESLint configuration
+    - Consistent formatting
+    - Component reusability
+
+## 📦 Deployment
+
+### Backend Deployment
+
+```bash
+cd server
+npm run build
+npm run start:prod
+```
+
+### Frontend Deployment
+
+```bash
+cd client
+npm run build
+# Deploy build/ folder to static hosting
+```
+
+### Environment Configuration
+
+-   Production database credentials
+-   JWT secret keys
+-   CORS origins
+-   WebSocket URLs
+
+## 🤝 Contributing
+
+We welcome contributions! Please see our contributing guidelines:
+
+1. Fork the repository
+2. Create a feature branch
+3. Implement your changes
+4. Add tests if applicable
+5. Submit a pull request
+
+## 📄 License
+
+This project is licensed under the MIT License.
+
+## 📞 Support
+
+For support and questions:
+
+-   Create an issue in the repository
+-   Check the troubleshooting sections in individual READMEs
+-   Review console logs for debugging information
+-   Contact the development team
+
+## 🙏 Acknowledgments
+
+-   NestJS team for the excellent framework
+-   React team for the frontend library
+-   Socket.IO for real-time communication
+-   Tailwind CSS for the styling framework
+
+---
+
+**Happy Coding! 🚀**
