@@ -44,8 +44,7 @@ Thumbs.db
 .vscode/
 *.tsbuildinfo
 
-# package managers lock files (اختياري: إذا ما بدك تلزم نوع مدير واحد)
-# package-lock.json
+package-lock.json
 # yarn.lock
 # pnpm-lock.yaml
 
