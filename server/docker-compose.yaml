@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: 'postgres'
+      POSTGRES_PASSWORD: 'password'
+      POSTGRES_DB: 'test'
+    ports:
+      - '15432:5432'
+
+  nestjs:
+    build: .
+    restart: always
+    depends_on:
+      - postgres
+    ports:
+      - '3000:3000'
+
+volumes:
+  postgres_data:
