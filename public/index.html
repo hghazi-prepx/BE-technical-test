@@ -1,0 +1,3365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PrepX Timer - Real-time Exam Timer</title>
+    <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #333;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            padding: 40px;
+            max-width: 800px;
+            width: 90%;
+            text-align: center;
+        }
+
+        .header {
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            color: #667eea;
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 1.1rem;
+        }
+
+        /* Timer display styles removed - using individual student timers only */
+
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 30px 0;
+        }
+
+        .btn {
+            padding: 15px 25px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn-start {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .btn-pause {
+            background: #FF9800;
+            color: white;
+        }
+
+        .btn-reset {
+            background: #f44336;
+            color: white;
+        }
+
+        .btn-leave {
+            background: linear-gradient(135deg, #ff9800, #f57c00);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(255, 152, 0, 0.3);
+        }
+
+        .btn-leave:hover {
+            background: linear-gradient(135deg, #f57c00, #ef6c00);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 152, 0, 0.4);
+        }
+
+        .input-field input:disabled {
+            background-color: #f5f5f5;
+            color: #999;
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+
+        .btn-add-time {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .btn-subtract-time {
+            background: #FF5722;
+            color: white;
+        }
+
+        .time-adjustment-section {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+            border-left: 5px solid #2196F3;
+        }
+
+        .time-adjustment-section h3 {
+            color: #2196F3;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .connection-status {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: 10px;
+            font-weight: 600;
+        }
+
+        .status-connected {
+            background: #e8f5e8;
+            color: #4CAF50;
+            border: 2px solid #4CAF50;
+        }
+
+        .status-disconnected {
+            background: #ffeaea;
+            color: #f44336;
+            border: 2px solid #f44336;
+        }
+
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        .connected {
+            background: #4CAF50;
+        }
+
+        .disconnected {
+            background: #f44336;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .exam-info {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            border-left: 5px solid #667eea;
+        }
+
+        .exam-info h3 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin: 15px 0;
+            align-items: center;
+        }
+
+        .input-field {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .input-field label {
+            color: #667eea;
+            font-weight: 600;
+            font-size: 14px;
+            margin-bottom: 5px;
+        }
+
+        .help-text {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-left: 4px solid #4CAF50;
+        }
+
+        .help-text p {
+            margin: 0 0 10px 0;
+            color: #333;
+            font-size: 16px;
+        }
+
+        .help-text ul {
+            margin: 0;
+            padding-left: 20px;
+            color: #555;
+        }
+
+        .help-text li {
+            margin-bottom: 8px;
+            line-height: 1.4;
+        }
+
+        .input-group input, .input-group select {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 1rem;
+        }
+
+        .input-group input:focus, .input-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .logs {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            max-height: 200px;
+            overflow-y: auto;
+            text-align: left;
+        }
+
+        .log-entry {
+            padding: 5px 0;
+            border-bottom: 1px solid #eee;
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .log-entry:last-child {
+            border-bottom: none;
+        }
+
+        .error {
+            color: #f44336;
+            background: #ffeaea;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+
+        /* Floating notification system */
+        .notification-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            max-width: 400px;
+        }
+
+        .notification {
+            padding: 15px 20px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            font-weight: 500;
+            font-size: 14px;
+            line-height: 1.4;
+            animation: slideIn 0.3s ease-out;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .notification.success {
+            background: #d4edda;
+            color: #155724;
+            border-left: 4px solid #28a745;
+        }
+
+        .notification.error {
+            background: #f8d7da;
+            color: #721c24;
+            border-left: 4px solid #dc3545;
+        }
+
+        .notification.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border-left: 4px solid #17a2b8;
+        }
+
+        .notification::before {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            height: 3px;
+            background: currentColor;
+            animation: progressBar 5s linear;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideOut {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+            to {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+        }
+
+        @keyframes progressBar {
+            from {
+                width: 100%;
+            }
+            to {
+                width: 0%;
+            }
+        }
+
+        .notification.slide-out {
+            animation: slideOut 0.3s ease-in;
+        }
+
+        /* Modal Styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 2000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 500px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            animation: slideInModal 0.3s ease-out;
+        }
+
+        .modal-header {
+            padding: 25px 30px 15px;
+            border-bottom: 2px solid #f0f0f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h2 {
+            color: #667eea;
+            margin: 0;
+            font-size: 1.5rem;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 2rem;
+            color: #999;
+            cursor: pointer;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: all 0.3s ease;
+        }
+
+        .modal-close:hover {
+            background: #f0f0f0;
+            color: #333;
+        }
+
+        .modal-body {
+            padding: 25px 30px;
+        }
+
+        .modal-body .input-field {
+            margin-bottom: 20px;
+        }
+
+        .modal-body .input-field label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 600;
+        }
+
+        .modal-body .input-field input,
+        .modal-body .input-field textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+
+        .modal-body .input-field input:focus,
+        .modal-body .input-field textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .modal-body .input-field small {
+            color: #666;
+            font-size: 0.85rem;
+            margin-top: 5px;
+            display: block;
+        }
+
+        .modal-body .input-field textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .modal-footer {
+            padding: 15px 30px 25px;
+            border-top: 2px solid #f0f0f0;
+            display: flex;
+            justify-content: flex-end;
+            gap: 15px;
+        }
+
+        .modal-footer .btn {
+            min-width: 120px;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes slideInModal {
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        /* Students Management Styles */
+        .students-management {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            padding: 25px;
+            margin: 20px 0;
+            border-left: 5px solid #4CAF50;
+        }
+
+        .students-management h3 {
+            color: #4CAF50;
+            margin-bottom: 20px;
+        }
+
+        .exam-info-panel {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .exam-details h4 {
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .exam-details p {
+            color: #666;
+            margin-bottom: 15px;
+        }
+
+        .exam-stats {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .stat {
+            color: #555;
+            font-size: 0.9rem;
+        }
+
+        .stat strong {
+            color: #333;
+        }
+
+        .btn-refresh {
+            background: #17a2b8;
+            color: white;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            min-width: 100px;
+        }
+
+        .btn-refresh:hover {
+            background: #138496;
+        }
+
+        .students-table-section {
+            margin-bottom: 25px;
+        }
+
+        .table-header {
+            margin-bottom: 15px;
+        }
+
+        .table-header h4 {
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .table-header small {
+            color: #666;
+            font-style: italic;
+        }
+
+        .students-table-container {
+            overflow-x: auto;
+            border-radius: 10px;
+            border: 1px solid #ddd;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .students-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+        }
+
+        .students-table th {
+            background: #f8f9fa;
+            color: #333;
+            font-weight: 600;
+            padding: 12px;
+            text-align: left;
+            border-bottom: 2px solid #ddd;
+            position: sticky;
+            top: 0;
+        }
+
+        .students-table td {
+            padding: 12px;
+            border-bottom: 1px solid #eee;
+            vertical-align: middle;
+        }
+
+        .students-table tr:hover {
+            background: #f8f9fa;
+        }
+
+        .students-table tbody tr {
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .students-table tbody tr:hover {
+            background: #e3f2fd;
+        }
+
+        .students-table tbody tr.selected {
+            background: #bbdefb;
+            font-weight: 600;
+        }
+
+        .connection-status-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-connected {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-disconnected {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .join-time {
+            font-size: 0.85rem;
+            color: #666;
+        }
+
+        .individual-timer-cell {
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .no-students {
+            text-align: center;
+            color: #666;
+            font-style: italic;
+            padding: 30px !important;
+        }
+
+        /* Selected Student Controls */
+        .selected-student-controls {
+            background: #e3f2fd;
+            border-radius: 10px;
+            padding: 20px;
+            border-left: 5px solid #2196F3;
+        }
+
+        .selected-student-controls h4 {
+            color: #2196F3;
+            margin-bottom: 15px;
+        }
+
+        .student-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+        }
+
+        .selected-student-details {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .student-name {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .student-id {
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .student-timer-display {
+            text-align: right;
+        }
+
+        .individual-timer {
+            font-size: 2rem;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            color: #2196F3;
+        }
+
+        .timer-adjustment {
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .timer-controls-individual {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .custom-adjustment {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+        }
+
+        .custom-adjustment .input-group {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .custom-adjustment input {
+            flex: 1;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 1rem;
+        }
+
+        .custom-adjustment input:focus {
+            outline: none;
+            border-color: #2196F3;
+        }
+
+        /* User Info Bar Styles */
+        .user-info-bar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .user-details {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .user-name {
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+
+        .user-role {
+            font-size: 0.9rem;
+            opacity: 0.9;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .btn-logout {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .btn-logout:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-1px);
+        }
+
+        /* Student Exam List Styles */
+        .student-dashboard {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            padding: 25px;
+            margin: 20px 0;
+            border-left: 5px solid #2196F3;
+        }
+
+        .student-dashboard h3 {
+            color: #2196F3;
+            margin-bottom: 20px;
+        }
+
+        .exams-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .exam-card {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            border: 2px solid #e9ecef;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .exam-card:hover {
+            border-color: #2196F3;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(33, 150, 243, 0.2);
+        }
+
+        .exam-card.joined {
+            border-color: #4CAF50;
+            background: #f1f8e9;
+        }
+
+        .exam-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 15px;
+        }
+
+        .exam-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .exam-status-badge {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-stopped {
+            background: #fee;
+            color: #e74c3c;
+        }
+
+        .status-running {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-paused {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .exam-description {
+            color: #666;
+            font-size: 0.9rem;
+            margin-bottom: 15px;
+            line-height: 1.4;
+        }
+
+        .exam-meta {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            color: #666;
+        }
+
+        .no-exams {
+            text-align: center;
+            color: #666;
+            font-style: italic;
+            padding: 40px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        /* Main Exam Dashboard Styles */
+        .exam-dashboard {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            padding: 25px;
+            margin: 20px 0;
+            border-left: 5px solid #667eea;
+        }
+
+        .exam-dashboard h3 {
+            color: #667eea;
+            margin-bottom: 20px;
+        }
+
+        .current-exam-info {
+            background: #e8f4fd;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 25px;
+            border-left: 5px solid #2196F3;
+        }
+
+        .current-exam-details h4 {
+            color: #2196F3;
+            margin-bottom: 10px;
+        }
+
+        .exam-connection-controls {
+            margin-top: 15px;
+        }
+
+        .loading-exams {
+            text-align: center;
+            color: #666;
+            font-style: italic;
+            padding: 40px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        /* Enhanced Exam Card Styles */
+        .exam-card.instructor-exam {
+            border-left: 4px solid #4CAF50;
+        }
+
+        .exam-card.student-exam {
+            border-left: 4px solid #2196F3;
+        }
+
+        .exam-card-actions {
+            margin-top: 15px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-join-exam {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .btn-join-exam:hover {
+            background: #45a049;
+            transform: translateY(-1px);
+        }
+
+        .btn-view-students {
+            background: #2196F3;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .btn-view-students:hover {
+            background: #1976D2;
+            transform: translateY(-1px);
+        }
+
+        /* Exam Timer Controls in Individual Section */
+        .exam-timer-controls {
+            background: #fff3e0;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-left: 4px solid #ff9800;
+        }
+
+        .exam-timer-controls h5 {
+            color: #ff9800;
+            margin-bottom: 10px;
+            font-size: 0.9rem;
+        }
+
+        .timer-controls-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+        }
+
+        .time-adjustment-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+
+        .timer-controls-individual h5 {
+            color: #2196F3;
+            margin-bottom: 10px;
+            font-size: 0.9rem;
+        }
+
+        /* Student Exam Interface Styles */
+        .student-exam-interface {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+            margin: 20px 0;
+            border-left: 5px solid #4CAF50;
+        }
+
+        .exam-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .exam-info h3 {
+            color: #4CAF50;
+            margin-bottom: 10px;
+            font-size: 1.5rem;
+        }
+
+        .exam-info p {
+            color: #666;
+            font-size: 1.1rem;
+            line-height: 1.4;
+        }
+
+        .btn-leave-exam {
+            background: #f44336;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            min-width: 140px;
+        }
+
+        .btn-leave-exam:hover {
+            background: #d32f2f;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(244, 67, 54, 0.3);
+        }
+
+        .student-exam-info {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .exam-instructions h4 {
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .exam-instructions ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .exam-instructions li {
+            background: white;
+            padding: 10px 15px;
+            margin-bottom: 8px;
+            border-radius: 6px;
+            border-left: 3px solid #4CAF50;
+            color: #555;
+        }
+
+        .exam-instructions li:before {
+            content: "✓";
+            color: #4CAF50;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+
+        /* Student Exam Timer Styles */
+        .student-exam-timer {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 15px;
+            padding: 30px;
+            margin: 20px 0;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .timer-display-large {
+            color: white;
+        }
+
+        .timer-label {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 15px;
+            opacity: 0.9;
+        }
+
+        .timer-value {
+            font-size: 4rem;
+            font-weight: 700;
+            font-family: 'Courier New', monospace;
+            margin: 20px 0;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+            letter-spacing: 3px;
+        }
+
+        .timer-status {
+            font-size: 1.1rem;
+            font-weight: 500;
+            opacity: 0.8;
+            margin-top: 10px;
+        }
+
+        /* Timer status colors */
+        .timer-status.running {
+            color: #4CAF50;
+        }
+
+        .timer-status.paused {
+            color: #FF9800;
+        }
+
+        .timer-status.stopped {
+            color: #f44336;
+        }
+
+        .timer-status.expired {
+            color: #f44336;
+            font-weight: 700;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Notification Container -->
+    <div class="notification-container" id="notificationContainer"></div>
+    
+    <div class="container">
+        <!-- User Info Bar -->
+        <div class="user-info-bar" id="userInfoBar" style="display: none;">
+            <div class="user-details">
+                <span class="user-name" id="userName">Loading...</span>
+                <span class="user-role" id="userRole">--</span>
+            </div>
+            <button class="btn-logout" onclick="logout()">🚪 Logout</button>
+        </div>
+
+        <div class="header">
+            <h1>🎯 PrepX Timer</h1>
+            <p>Real-time Exam Timer System</p>
+        </div>
+
+        <div class="connection-status" id="connectionStatus">
+            <div class="status-indicator disconnected" id="statusIndicator"></div>
+            <span id="statusText">Disconnected</span>
+        </div>
+
+        <!-- Instructor-only exam creation section - initially hidden -->
+        <div class="exam-info" id="instructorSection" style="display: none;">
+            <h3>Instructor Panel - Create New Exam</h3>
+            <div class="help-text">
+                <p><strong>🎓 Instructor Controls:</strong></p>
+                <ul>
+                    <li>Create new exams with custom duration</li>
+                    <li>Exams are created under your instructor ID</li>
+                    <li>Share the generated Exam ID with students</li>
+                </ul>
+            </div>
+            <button class="btn btn-start" onclick="showCreateExamModal()" id="createExamBtn">
+                ✨ Create New Exam
+            </button>
+                </div>
+
+        <!-- Students Management Panel - initially hidden -->
+        <div class="students-management" id="studentsManagement" style="display: none;">
+            <h3>📊 Students Management</h3>
+            
+            <!-- Exam Information Panel -->
+            <div class="exam-info-panel" id="examInfoPanel">
+                <div class="exam-details">
+                    <h4 id="examTitle">Loading exam details...</h4>
+                    <p id="examDescription">Please wait while we load exam information.</p>
+                    <div class="exam-stats">
+                        <span class="stat">📚 Duration: <strong id="examDuration">--</strong></span>
+                        <span class="stat">📊 Status: <strong id="examStatus">--</strong></span>
+                        <span class="stat">👥 Connected: <strong id="connectedCount">0</strong></span>
+                </div>
+            </div>
+                <button class="btn btn-refresh" onclick="refreshExamDetails()" id="refreshExamBtn">
+                    🔄 Refresh
+                </button>
+        </div>
+
+            <!-- Students Table -->
+            <div class="students-table-section">
+                <div class="table-header">
+                    <h4>Connected Students</h4>
+                    <small>Click on a student to select and control their timer individually</small>
+                </div>
+                <div class="students-table-container">
+                    <table class="students-table" id="studentsTable">
+                        <thead>
+                            <tr>
+                                <th>Student Name</th>
+                                <th>Student ID</th>
+                                <th>Connection Status</th>
+                                <th>Join Time</th>
+                                <th>Individual Timer</th>
+                            </tr>
+                        </thead>
+                        <tbody id="studentsTableBody">
+                            <tr class="no-students">
+                                <td colspan="5">No students have joined this exam yet</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+        </div>
+
+            <!-- Selected Student Controls -->
+            <div class="selected-student-controls" id="selectedStudentControls" style="display: none;">
+                <h4>Individual Student Controls</h4>
+                <div class="student-info">
+                    <div class="selected-student-details">
+                        <span class="student-name" id="selectedStudentName">No Student Selected</span>
+                        <span class="student-id" id="selectedStudentId">--</span>
+                        <span class="connection-status" id="selectedStudentStatus">--</span>
+                    </div>
+                    <div class="student-timer-display">
+                        <div class="individual-timer" id="selectedStudentTimer">00:00:00</div>
+                        <div class="timer-adjustment" id="selectedStudentAdjustment">No adjustments</div>
+                    </div>
+        </div>
+
+                <!-- Exam Timer Controls (for selected student) -->
+                <div class="exam-timer-controls">
+                    <h5>Exam Timer Controls</h5>
+                    <div class="timer-controls-grid">
+                        <button class="btn btn-start" onclick="startTimer()" id="selectedStudentStartBtn">
+                            ▶️ Start Timer
+                        </button>
+                        <button class="btn btn-pause" onclick="pauseTimer()" id="selectedStudentPauseBtn">
+                            ⏸️ Pause Timer
+                        </button>
+                        <button class="btn btn-reset" onclick="resetTimer()" id="selectedStudentResetBtn">
+                            🔄 Reset Timer
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Individual Time Adjustment Controls -->
+                <div class="timer-controls-individual">
+                    <h5>Individual Time Adjustment</h5>
+                    <div class="time-adjustment-grid">
+                        <button class="btn btn-add-time" onclick="adjustSelectedStudentTime(300)" id="add5MinBtn">
+                            ➕ Add 5 Minutes
+                        </button>
+                        <button class="btn btn-subtract-time" onclick="adjustSelectedStudentTime(-300)" id="subtract5MinBtn">
+                            ➖ Subtract 5 Minutes
+                        </button>
+                        <button class="btn btn-add-time" onclick="adjustSelectedStudentTime(60)" id="add1MinBtn">
+                            ➕ Add 1 Minute
+                        </button>
+                        <button class="btn btn-subtract-time" onclick="adjustSelectedStudentTime(-60)" id="subtract1MinBtn">
+                            ➖ Subtract 1 Minute
+                        </button>
+                    </div>
+                </div>
+
+                <div class="custom-adjustment">
+        <div class="input-group">
+                        <input type="number" id="customAdjustmentInput" placeholder="Seconds (+ or -)" min="-1800" max="1800">
+                        <button class="btn btn-adjust" onclick="adjustSelectedStudentCustomTime()">Apply Custom</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Legacy Student Dashboard - removed and replaced with unified exam dashboard -->
+
+        <!-- Role-based Exam Dashboard -->
+        <div class="exam-dashboard" id="examDashboard">
+            <h3 id="dashboardTitle">📚 My Exams</h3>
+            <div class="help-text" id="dashboardHelp">
+                <p><strong>📋 Instructions:</strong></p>
+                <ul id="dashboardInstructions">
+                    <li>Click on an exam to view details and join</li>
+                    <li>Your available exams are displayed below</li>
+                </ul>
+            </div>
+            
+            <!-- Exams Grid -->
+            <div class="exams-grid" id="examsList">
+                <div class="loading-exams">Loading your exams...</div>
+            </div>
+        </div>
+
+        <!-- Student Exam Interface - Shown when student joins an exam -->
+        <div class="student-exam-interface" id="studentExamInterface" style="display: none;">
+            <div class="exam-header">
+                <div class="exam-info">
+                    <h3 id="studentCurrentExamTitle">Loading Exam...</h3>
+                    <p id="studentCurrentExamDescription">Please wait while we load exam information.</p>
+                </div>
+                <button class="btn btn-leave-exam" onclick="leaveCurrentExam()" id="studentLeaveExamBtn">
+                    🚪 Leave Exam
+                </button>
+            </div>
+            
+            <!-- Student Timer Display -->
+            <div class="student-exam-timer" id="studentExamTimer">
+                <div class="timer-display-large">
+                    <div class="timer-label">Exam Time Remaining</div>
+                    <div class="timer-value" id="studentTimerDisplay">00:00:00</div>
+                    <div class="timer-status" id="studentTimerStatus">Waiting to start...</div>
+                </div>
+            </div>
+            
+            <div class="student-exam-info">
+                <div class="exam-instructions">
+                    <h4>📋 Exam Instructions</h4>
+                    <ul>
+                        <li>Your timer is managed by the instructor</li>
+                        <li>Stay connected to receive real-time updates</li>
+                        <li>The timer will update automatically when started</li>
+                        <li>You will be notified of any time adjustments</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Instructor Current Exam Info (separate from student interface) -->
+        <div class="current-exam-info" id="currentExamInfo" style="display: none;">
+            <div class="current-exam-details">
+                <h4 id="currentExamTitle">Current Exam</h4>
+                <p id="currentExamDescription">--</p>
+                <div class="exam-connection-controls">
+                    <button class="btn btn-reset" onclick="leaveCurrentExam()" id="leaveCurrentExamBtn">
+                        🚪 Leave Exam
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Timer controls are now only available in Individual Student Controls section -->
+
+        <div class="logs">
+            <h3>Activity Log</h3>
+            <div id="logs"></div>
+        </div>
+
+        <div id="errorContainer"></div>
+    </div>
+
+    <!-- Create Exam Modal -->
+    <div class="modal-overlay" id="createExamModal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Create New Exam</h2>
+                <button class="modal-close" onclick="hideCreateExamModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="input-field">
+                    <label for="modalExamTitle">📝 Exam Title</label>
+                    <input type="text" id="modalExamTitle" placeholder="e.g., Mathematics Final Exam" required>
+                </div>
+                <div class="input-field">
+                    <label for="modalExamDescription">📄 Exam Description</label>
+                    <textarea id="modalExamDescription" placeholder="Brief description of the exam content and objectives" rows="3"></textarea>
+                </div>
+                <div class="input-field">
+                    <label for="modalExamDuration">⏱️ Duration (Minutes)</label>
+                    <input type="number" id="modalExamDuration" placeholder="120" value="120" min="5" max="480" required>
+                    <small>Duration must be between 5 and 480 minutes (8 hours)</small>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-reset" onclick="hideCreateExamModal()">Cancel</button>
+                <button class="btn btn-start" onclick="createExamFromModal()">Create Exam</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let socket = null;
+        let currentExamId = null;
+        let currentUserId = null;
+        let currentRole = null;
+        let timerInterval = null;
+        let currentTimerState = null;
+        let isJoinedToExam = false;
+        let clientSideTimer = null;
+        let selectedStudentId = null;
+        let currentExamData = null;
+        let studentSessions = [];
+        let authToken = null;
+        let currentUser = null;
+        let selectedStudentTimerUpdate = null;
+
+        // Initialize socket connection with authentication
+        function initSocket() {
+            const socketConfig = {
+                transports: ['websocket', 'polling']
+            };
+            
+            // Add authentication if token is available
+            if (authToken) {
+                socketConfig.auth = {
+                    token: authToken
+                };
+                socketConfig.extraHeaders = {
+                    'Authorization': `Bearer ${authToken}`
+                };
+            }
+            
+            socket = io('http://localhost:3000', socketConfig);
+
+            socket.on('connect', () => {
+                updateConnectionStatus(true);
+                addLog('Connected to server');
+            });
+
+            socket.on('disconnect', () => {
+                updateConnectionStatus(false);
+                // Clear client-side timer when disconnected
+                if (clientSideTimer) {
+                    clearInterval(clientSideTimer);
+                    clientSideTimer = null;
+                }
+                addLog('Disconnected from server - Timer paused');
+            });
+
+            socket.on('timerUpdate', (data) => {
+                console.log('Timer update received:', data);
+                
+                // Handle individual student timer updates
+                if (currentRole === 'student') {
+                    // This is an individual student timer update
+                    if (data.studentId && data.studentId === currentUserId) {
+                        console.log('🎯 Processing individual timer update for current student:', data.studentId);
+                        
+                        // Update current timer state with individual data
+                        currentTimerState = data;
+                        
+                        // Ensure student exam interface is visible
+                        const studentExamInterface = document.getElementById('studentExamInterface');
+                        const examDashboard = document.getElementById('examDashboard');
+                        
+                        if (studentExamInterface) {
+                            studentExamInterface.style.display = 'block';
+                            console.log('✅ Student exam interface ensured visible');
+                        }
+                        
+                        if (examDashboard) {
+                            examDashboard.style.display = 'none';
+                            console.log('✅ Dashboard hidden for timer view');
+                        }
+                        
+                        // Update timer with individual student data
+                        const studentTimerDisplay = document.getElementById('studentTimerDisplay');
+                        const studentTimerStatus = document.getElementById('studentTimerStatus');
+                        
+                        console.log('📊 Using individual student timer data:', {
+                            remainingTime: data.remainingTime,
+                            status: data.status,
+                            examId: data.examId,
+                            studentId: data.studentId
+                        });
+                        
+                        if (studentTimerDisplay && typeof data.remainingTime === 'number') {
+                            const formattedTime = formatTime(data.remainingTime);
+                            studentTimerDisplay.textContent = formattedTime;
+                            console.log(`✅ Student timer updated with INDIVIDUAL DATA: ${formattedTime} (${data.remainingTime} seconds)`);
+                        } else {
+                            console.error('❌ Student timer display not found or invalid data:', {
+                                element: !!studentTimerDisplay,
+                                remainingTime: data.remainingTime,
+                                type: typeof data.remainingTime
+                            });
+                        }
+                        
+                        if (studentTimerStatus) {
+                            studentTimerStatus.className = 'timer-status';
+                            switch (data.status) {
+                                case 'running':
+                                    studentTimerStatus.textContent = 'Exam in progress...';
+                                    studentTimerStatus.classList.add('running');
+                                    break;
+                                case 'paused':
+                                    studentTimerStatus.textContent = 'Timer paused';
+                                    studentTimerStatus.classList.add('paused');
+                                    break;
+                                case 'stopped':
+                                    studentTimerStatus.textContent = 'Timer stopped';
+                                    studentTimerStatus.classList.add('stopped');
+                                    break;
+                                default:
+                                    studentTimerStatus.textContent = 'Waiting to start...';
+                            }
+                            console.log(`✅ Student timer status updated with individual data: ${data.status}`);
+                        }
+                        
+                        // Start individual client-side timer
+                        if (data.status === 'running' && data.remainingTime > 0) {
+                            startStudentClientSideTimer(data);
+                        } else {
+                            // Stop client-side timer if not running
+                            if (clientSideTimer) {
+                                clearInterval(clientSideTimer);
+                                clientSideTimer = null;
+                            }
+                        }
+                    }
+                    return; // Exit early for students
+                }
+                
+                // For instructors - handle timer updates for selected student or exam-wide
+                if (currentRole === 'instructor' || currentRole === 'admin') {
+                    if (data.studentId) {
+                        // This is an update for a specific student
+                        console.log('🎯 Processing timer update for specific student:', data.studentId);
+                        
+                        // Update student session data
+                        const studentSession = studentSessions.find(s => s.studentId === data.studentId);
+                        if (studentSession) {
+                            if (!studentSession.individualTimer) {
+                                studentSession.individualTimer = {};
+                            }
+                            studentSession.individualTimer.remainingTime = data.remainingTime;
+                            studentSession.individualTimer.status = data.status;
+                            studentSession.individualTimer.lastUpdated = new Date();
+                        }
+                        
+                        // Update selected student display if this is the selected student
+                        if (selectedStudentId === data.studentId) {
+                            updateSelectedStudentTimer({
+                                studentId: data.studentId,
+                                timerState: {
+                                    remainingTime: data.remainingTime,
+                                    status: data.status,
+                                    timeAdjustment: data.timeAdjustment || 0,
+                                    totalTime: data.totalTime,
+                                    startedAt: data.startedAt,
+                                    pausedAt: data.pausedAt
+                                }
+                            });
+                        }
+                    } else {
+                        // This is an exam-wide update (fallback for compatibility)
+                        console.log('🎯 Processing exam-wide timer update');
+                        currentTimerState = data;
+                        currentExamData = data;
+                        
+                        // Update timer button states
+                        updateTimerButtonStates(data.status);
+                        
+                        // Start client-side timer for instructors
+                        startClientSideTimer(data);
+                    }
+                }
+                
+                addLog(`Timer updated: ${formatTime(data.remainingTime)} - Status: ${data.status}${data.studentId ? ` (Student: ${data.studentId})` : ''}`);
+            });
+
+            // Legacy timer events removed - now using timerUpdate for all timer state changes
+
+            // Legacy timer events removed - now using timerUpdate for all timer state changes
+
+            socket.on('studentSessionsUpdate', (data) => {
+                if (currentRole === 'instructor' || currentRole === 'admin') {
+                    console.log('👥 Student sessions update received (Individual Sessions mode)');
+                    
+                    // Update local student sessions with individual timer data
+                    studentSessions = data.students;
+                    
+                    // Update students table with real-time session data
+                    updateStudentsTable(data.students);
+                    
+                    updateConnectedCount(data.students);
+                    
+                    // Update selected student timer if one is selected
+                    if (selectedStudentId) {
+                        const selectedStudent = studentSessions.find(s => s.studentId === selectedStudentId);
+                        if (selectedStudent && selectedStudent.timerState) {
+                            updateSelectedStudentTimer(selectedStudent);
+                        }
+                    }
+                }
+            });
+
+            socket.on('studentSelected', (data) => {
+                if (currentRole === 'instructor' || currentRole === 'admin') {
+                    showSelectedStudentControls(data);
+                }
+            });
+
+            // Handle timer reset events from server
+            socket.on('timerReset', (data) => {
+                console.log('🔄 Timer reset event received:', data);
+                
+                if (currentRole === 'instructor' || currentRole === 'admin') {
+                    // Ensure button states remain correct after reset
+                    updateTimerButtonStates('stopped');
+                    
+                    // Update selected student timer display if applicable
+                    if (data.studentId && selectedStudentId === data.studentId) {
+                        const selectedStudentTimerElement = document.getElementById('selectedStudentTimer');
+                        if (selectedStudentTimerElement && currentExamData && currentExamData.totalTime) {
+                            selectedStudentTimerElement.textContent = formatTime(currentExamData.totalTime);
+                            console.log(`✅ Timer display updated after reset: ${formatTime(currentExamData.totalTime)}`);
+                        }
+                        
+                        // Also update adjustment display
+                        const adjustmentDisplay = document.getElementById('selectedStudentAdjustment');
+                        if (adjustmentDisplay) {
+                            adjustmentDisplay.textContent = 'No adjustment';
+                        }
+                        
+                        // Force refresh the selected student data to get updated timer state
+                        if (selectedStudentId) {
+                            socket.emit('selectStudent', { examId: currentExamId, studentId: selectedStudentId });
+                        }
+                    } else if (!data.studentId) {
+                        // Reset for all students - update main timer display
+                        const selectedStudentTimerElement = document.getElementById('selectedStudentTimer');
+                        if (selectedStudentTimerElement && currentExamData && currentExamData.totalTime) {
+                            selectedStudentTimerElement.textContent = formatTime(currentExamData.totalTime);
+                            console.log(`✅ Main timer display updated after reset: ${formatTime(currentExamData.totalTime)}`);
+                        }
+                        
+                        // Reset adjustment display
+                        const adjustmentDisplay = document.getElementById('selectedStudentAdjustment');
+                        if (adjustmentDisplay) {
+                            adjustmentDisplay.textContent = 'No adjustment';
+                        }
+                        
+                        // Force refresh the selected student data for exam-wide reset
+                        if (selectedStudentId) {
+                            socket.emit('selectStudent', { examId: currentExamId, studentId: selectedStudentId });
+                        }
+                    }
+                    
+                    addLog(`Timer reset ${data.studentId ? `for student ${data.studentId}` : 'for all students'} by ${data.resetBy}`);
+                    showNotification(`Timer reset successfully`, 'success');
+                }
+            });
+
+            // individualTimerUpdate event removed - now using timerUpdate for individual sessions
+
+            socket.on('studentConnected', (data) => {
+                addLog(`Student connected: ${data.userId || data.studentId}`);
+            });
+
+            socket.on('studentDisconnected', (data) => {
+                console.log('🔴 Student disconnected:', data);
+                addLog(`Student ${data.userName || data.userId} disconnected from exam`);
+                
+                // Update student status in the UI to show as disconnected
+                const studentRow = document.querySelector(`tr[data-student-id="${data.userId}"]`);
+                if (studentRow) {
+                    const statusCell = studentRow.querySelector('.student-status');
+                    if (statusCell) {
+                        statusCell.textContent = 'DISCONNECTED';
+                        statusCell.className = 'student-status disconnected';
+                        statusCell.style.color = '#dc3545'; // Red color
+                        statusCell.style.fontWeight = 'bold';
+                    }
+                }
+                
+                // Show notification to instructor
+                if (currentRole === 'instructor' || currentRole === 'admin') {
+                    showNotification(`Student ${data.userName || data.userId} has left the exam`, 'warning');
+                }
+            });
+
+            socket.on('joinExamResponse', (data) => {
+                if (data.success) {
+                    showNotification(data.message || 'Successfully joined the exam', 'success');
+                    addLog(`Successfully joined exam as ${data.role}`);
+                    currentRole = data.role;
+                    currentUserId = data.userId;
+                    currentExamId = data.examId;
+                    isJoinedToExam = true;
+                    
+                    console.log('✅ Join success - Updated variables:', {
+                        currentRole: currentRole,
+                        currentUserId: currentUserId,
+                        currentExamId: currentExamId,
+                        currentUser: currentUser
+                    });
+                    enableControls(data.role === 'instructor' || data.role === 'admin');
+                    updateJoinLeaveButtons(true);
+                    showInstructorSection(data.role === 'instructor' || data.role === 'admin');
+                    
+                    // For students, show the dedicated student exam interface
+                    if (data.role === 'student') {
+                        console.log('🎯 Activating student exam interface...');
+                        
+                        // Hide dashboard and show student interface
+                        const examDashboard = document.getElementById('examDashboard');
+                        const studentExamInterface = document.getElementById('studentExamInterface');
+                        
+                        if (examDashboard) {
+                            examDashboard.style.display = 'none';
+                            console.log('✅ Dashboard hidden');
+                        }
+                        
+                        if (studentExamInterface) {
+                            studentExamInterface.style.display = 'block';
+                            console.log('✅ Student exam interface shown');
+                        } else {
+                            console.error('❌ Student exam interface not found!');
+                        }
+                        
+                        // The timer is now always visible in the student interface
+                        const studentTimerElement = document.getElementById('studentExamTimer');
+                        const timerDisplay = document.getElementById('studentTimerDisplay');
+                        const timerStatus = document.getElementById('studentTimerStatus');
+                        
+                        console.log('🔍 Timer elements check:', {
+                            studentTimerElement: !!studentTimerElement,
+                            timerDisplay: !!timerDisplay,
+                            timerStatus: !!timerStatus
+                        });
+                        
+                        // Initialize timer display with current exam data if available
+                        if (timerDisplay) {
+                            // Check if we have current timer state from server
+                            if (currentTimerState && typeof currentTimerState.remainingTime === 'number') {
+                                timerDisplay.textContent = formatTime(currentTimerState.remainingTime);
+                                console.log(`✅ Timer display initialized with current time: ${formatTime(currentTimerState.remainingTime)}`);
+                            } else {
+                                timerDisplay.textContent = '00:00:00';
+                                console.log('✅ Timer display initialized with default time');
+                            }
+                        }
+                        
+                        if (timerStatus) {
+                            // Set initial status based on current timer state
+                            if (currentTimerState) {
+                                const statusText = currentTimerState.status === 'running' ? 'Timer Running' : 
+                                                 currentTimerState.status === 'paused' ? 'Timer Paused' : 
+                                                 currentTimerState.status === 'stopped' ? 'Timer Stopped' : 'Timer Ready';
+                                timerStatus.textContent = statusText;
+                                timerStatus.className = `timer-status ${currentTimerState.status}`;
+                                console.log(`✅ Timer status initialized: ${statusText}`);
+                            } else {
+                                timerStatus.textContent = 'Connected to exam - Loading timer...';
+                                timerStatus.className = 'timer-status';
+                                console.log('✅ Timer status initialized with default');
+                            }
+                        }
+                        
+                        // Server will send timer updates automatically
+                        console.log('⏳ Waiting for automatic timer updates from server...');
+                        addLog('🎯 Student exam interface fully activated');
+                    }
+                } else {
+                    showNotification(data.message || 'Failed to join exam', 'error');
+                    addLog(`Join failed: ${data.message}`);
+                }
+            });
+
+            socket.on('leaveExamResponse', (data) => {
+                if (data.success) {
+                    showNotification(data.message || 'Successfully left the exam', 'success');
+                    addLog(`Successfully left exam ${data.examId}`);
+                    isJoinedToExam = false;
+                    currentRole = null;
+                    currentExamId = null;
+                    // Don't reset currentUserId - keep it for rejoining
+                    // currentUserId = null;
+                    enableControls(false);
+                    updateJoinLeaveButtons(false);
+                    showInstructorSection(false);
+                    
+                    // Show dashboard again for students
+                    if (currentUser && currentUser.role === 'student') {
+                        const examDashboard = document.getElementById('examDashboard');
+                        const studentExamInterface = document.getElementById('studentExamInterface');
+                        
+                        if (examDashboard) {
+                            examDashboard.style.display = 'block';
+                        }
+                        
+                        if (studentExamInterface) {
+                            studentExamInterface.style.display = 'none';
+                        }
+                    }
+                } else {
+                    showNotification(data.message || 'Failed to leave exam', 'error');
+                    addLog(`Leave failed: ${data.message}`);
+                }
+            });
+
+            socket.on('error', (error) => {
+                showNotification(error.message || 'An error occurred', 'error');
+                addLog(`Error: ${error.message}`);
+            });
+        }
+
+        // Modal management functions
+        function showCreateExamModal() {
+            if (!currentUserId || (currentRole !== 'instructor' && currentRole !== 'admin')) {
+                showNotification('Only instructors can create exams. Please join as an instructor first.', 'error');
+                return;
+            }
+            
+            document.getElementById('createExamModal').style.display = 'flex';
+            // Clear previous values
+            document.getElementById('modalExamTitle').value = '';
+            document.getElementById('modalExamDescription').value = '';
+            document.getElementById('modalExamDuration').value = '120';
+            
+            // Focus on title field
+            setTimeout(() => {
+                document.getElementById('modalExamTitle').focus();
+            }, 300);
+        }
+
+        function hideCreateExamModal() {
+            document.getElementById('createExamModal').style.display = 'none';
+        }
+
+        // Close modal when clicking outside
+        document.addEventListener('click', function(event) {
+            const modal = document.getElementById('createExamModal');
+            if (event.target === modal) {
+                hideCreateExamModal();
+            }
+        });
+
+        // Close modal with Escape key
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                hideCreateExamModal();
+            }
+        });
+
+        async function createExamFromModal() {
+            const title = document.getElementById('modalExamTitle').value.trim();
+            const description = document.getElementById('modalExamDescription').value.trim();
+            const duration = parseInt(document.getElementById('modalExamDuration').value);
+
+            // Validation
+            if (!title) {
+                showNotification('Please enter an exam title', 'error');
+                document.getElementById('modalExamTitle').focus();
+                return;
+            }
+
+            if (!duration || duration < 5 || duration > 480) {
+                showNotification('Duration must be between 5 and 480 minutes', 'error');
+                document.getElementById('modalExamDuration').focus();
+                return;
+            }
+
+            if (!currentUserId) {
+                showNotification('Please join as an instructor first', 'error');
+                hideCreateExamModal();
+                return;
+            }
+
+            try {
+                showNotification('Creating exam...', 'info');
+                
+                // Create exam via API
+                const response = await fetch('/api/exams', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        title: title,
+                        description: description || `${title} - Duration: ${duration} minutes`,
+                        duration: duration, // Will be converted to seconds in backend
+                        instructorId: currentUserId
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`HTTP ${response.status}: ${errorText}`);
+                }
+
+                const exam = await response.json();
+                
+                // Hide modal
+                hideCreateExamModal();
+                
+                // Show success notification
+                showNotification(`Exam "${title}" created successfully!`, 'success');
+                
+                // Auto-fill the exam ID field
+                document.getElementById('examId').value = exam._id;
+                
+                addLog(`Created exam "${title}" (${duration} minutes) with ID: ${exam._id}`);
+                addLog(`Share this Exam ID with students: ${exam._id}`);
+                
+            } catch (error) {
+                console.error('Create exam error:', error);
+                showNotification(`Failed to create exam: ${error.message}`, 'error');
+                addLog(`Failed to create exam: ${error.message}`);
+            }
+        }
+
+        function joinExam() {
+            // Legacy function - now handled by role-specific join functions
+            // This is kept for backward compatibility but should not be used
+            console.warn('Legacy joinExam() called - use joinExamAsInstructor() or joinExamAsStudent() instead');
+            
+            if (!currentExamId || !currentUserId) {
+                showNotification('Invalid exam or user ID', 'error');
+                return;
+            }
+
+            if (!socket) {
+                showNotification('Not connected to server', 'error');
+                return;
+            }
+
+            socket.emit('joinExam', {
+                examId: currentExamId, 
+                userId: currentUserId, 
+                role: currentUser?.role || 'student' 
+            });
+
+            addLog(`Attempting to join exam ${examId} with user ${userId}`);
+        }
+
+        function leaveExam() {
+            if (!socket || !currentExamId || !isJoinedToExam) {
+                showNotification('You are not currently in an exam', 'error');
+                return;
+            }
+
+            socket.emit('leaveExam', {
+                examId: currentExamId
+            });
+
+            addLog(`Attempting to leave exam ${currentExamId}`);
+        }
+
+        function updateJoinLeaveButtons(isJoined) {
+            // Legacy function - elements no longer exist since we removed the manual form
+            // This function is kept for compatibility but does nothing
+            console.log(`updateJoinLeaveButtons called with isJoined: ${isJoined}`);
+            
+            // Update exam dashboard visibility based on join status
+            const examDashboard = document.getElementById('examDashboard');
+            const currentExamInfo = document.getElementById('currentExamInfo');
+
+            if (isJoined) {
+                // Hide dashboard when joined to an exam
+                if (examDashboard) {
+                    examDashboard.style.display = 'none';
+                }
+                // Show current exam info
+                if (currentExamInfo) {
+                    currentExamInfo.style.display = 'block';
+                }
+            } else {
+                // Show dashboard when not joined
+                if (examDashboard) {
+                    examDashboard.style.display = 'block';
+                }
+                // Hide current exam info
+                if (currentExamInfo) {
+                    currentExamInfo.style.display = 'none';
+                }
+            }
+        }
+
+        function showInstructorSection(isInstructor) {
+            const instructorSection = document.getElementById('instructorSection');
+            const studentsManagement = document.getElementById('studentsManagement');
+            
+            if (isInstructor) {
+                instructorSection.style.display = 'block';
+                studentsManagement.style.display = 'block';
+                addLog('Instructor panel activated - You can now create new exams and manage students');
+                
+                // Load exam details if we're in an exam
+                if (currentExamId) {
+                    loadExamDetails();
+                    requestStudentSessions();
+                }
+            } else {
+                instructorSection.style.display = 'none';
+                studentsManagement.style.display = 'none';
+            }
+        }
+
+        function startTimer() {
+            if (!socket || !currentExamId) {
+                showNotification('Please join an exam first', 'error');
+                return;
+            }
+
+            if (!currentRole || (currentRole !== 'instructor' && currentRole !== 'admin')) {
+                showNotification('Only instructors and admins can start the timer', 'error');
+                return;
+            }
+
+            // Immediately update button states for better UX
+            updateTimerButtonStates('running');
+
+            const payload = { examId: currentExamId };
+            if (selectedStudentId) {
+                payload.studentId = selectedStudentId;
+                console.log(`🎯 Starting timer for student: ${selectedStudentId}`);
+            } else {
+                console.log('🎯 Starting timer for all students in exam');
+            }
+
+            socket.emit('startTimer', payload);
+        }
+
+        function pauseTimer() {
+            if (!socket || !currentExamId) {
+                showNotification('Please join an exam first', 'error');
+                return;
+            }
+
+            if (!currentRole || (currentRole !== 'instructor' && currentRole !== 'admin')) {
+                showNotification('Only instructors and admins can pause the timer', 'error');
+                return;
+            }
+
+            // Immediately update button states for better UX
+            updateTimerButtonStates('paused');
+
+            const payload = { examId: currentExamId };
+            if (selectedStudentId) {
+                payload.studentId = selectedStudentId;
+                console.log(`🎯 Pausing timer for student: ${selectedStudentId}`);
+            } else {
+                console.log('🎯 Pausing timer for all students in exam');
+            }
+
+            socket.emit('pauseTimer', payload);
+        }
+
+        function resetTimer() {
+            if (!socket || !currentExamId) {
+                showNotification('Please join an exam first', 'error');
+                return;
+            }
+
+            if (!currentRole || (currentRole !== 'instructor' && currentRole !== 'admin')) {
+                showNotification('Only instructors and admins can reset the timer', 'error');
+                return;
+            }
+
+            const payload = { examId: currentExamId };
+            if (selectedStudentId) {
+                payload.studentId = selectedStudentId;
+                console.log(`🎯 Resetting timer for student: ${selectedStudentId}`);
+            } else {
+                console.log('🎯 Resetting timer for all students in exam');
+            }
+
+            // Update button states immediately for better UX
+            updateTimerButtonStates('stopped');
+            
+            // Update selected student timer display if applicable
+            if (selectedStudentId) {
+                const selectedStudentTimerElement = document.getElementById('selectedStudentTimer');
+                if (selectedStudentTimerElement && currentExamData && currentExamData.totalTime) {
+                    selectedStudentTimerElement.textContent = formatTime(currentExamData.totalTime);
+                }
+            }
+
+            socket.emit('resetTimer', payload);
+        }
+
+        function addTime() {
+            adjustTimer(300); // Add 5 minutes
+        }
+
+        function subtractTime() {
+            adjustTimer(-300); // Subtract 5 minutes
+        }
+
+        function customAddTime() {
+            const timeAdjustment = parseInt(document.getElementById('timeAdjustment').value) || 0;
+            if (timeAdjustment <= 0) {
+                showNotification('Please enter a positive number for adding time', 'error');
+                return;
+            }
+            adjustTimer(timeAdjustment);
+        }
+
+        function customSubtractTime() {
+            const timeAdjustment = parseInt(document.getElementById('timeAdjustment').value) || 0;
+            if (timeAdjustment <= 0) {
+                showNotification('Please enter a positive number for subtracting time', 'error');
+                return;
+            }
+            adjustTimer(-timeAdjustment);
+        }
+
+        function adjustTimer(timeAdjustment) {
+            if (!socket || !currentExamId) {
+                showNotification('Please join an exam first', 'error');
+                return;
+            }
+
+            if (!currentRole || (currentRole !== 'instructor' && currentRole !== 'admin')) {
+                showNotification('Only instructors and admins can adjust the timer', 'error');
+                return;
+            }
+
+            socket.emit('adjustTimer', {
+                examId: currentExamId,
+                timeAdjustment: timeAdjustment
+            });
+        }
+
+        function updateConnectionStatus(connected) {
+            const statusElement = document.getElementById('connectionStatus');
+            const indicatorElement = document.getElementById('statusIndicator');
+            const textElement = document.getElementById('statusText');
+
+            if (connected) {
+                statusElement.className = 'connection-status status-connected';
+                indicatorElement.className = 'status-indicator connected';
+                textElement.textContent = 'Connected';
+            } else {
+                statusElement.className = 'connection-status status-disconnected';
+                indicatorElement.className = 'status-indicator disconnected';
+                textElement.textContent = 'Disconnected';
+            }
+        }
+
+        // Timer display functions removed - using individual student timers only
+        
+        function startClientSideTimer(timerState) {
+            // Clear any existing client-side timer
+            if (clientSideTimer) {
+                clearInterval(clientSideTimer);
+                clientSideTimer = null;
+            }
+
+            // Update timer display immediately with server data
+            updateTimerDisplay(timerState.remainingTime);
+            
+            // Update button states based on timer status
+            updateTimerButtonStates(timerState.status);
+
+            // Only start client-side countdown if timer is running
+            if (timerState.status === 'running' && timerState.remainingTime > 0) {
+                let remainingTime = timerState.remainingTime;
+                const startTime = Date.now();
+
+                clientSideTimer = setInterval(() => {
+                    const elapsed = Math.floor((Date.now() - startTime) / 1000);
+                    const currentRemaining = Math.max(0, remainingTime - elapsed);
+                    
+                    console.log(`⏰ Client-side timer tick: ${currentRemaining}s (started from ${remainingTime}s)`);
+                    
+                    // Update student timer display if user is a student
+                    if (currentRole === 'student') {
+                        const studentTimerDisplay = document.getElementById('studentTimerDisplay');
+                        if (studentTimerDisplay) {
+                            studentTimerDisplay.textContent = formatTime(currentRemaining);
+                            console.log(`🎯 Student timer updated to: ${formatTime(currentRemaining)}`);
+                        }
+                    }
+                    
+                    // Update main timer display in real-time for instructors
+                    if (currentRole !== 'student') {
+                        const selectedStudentTimerElement = document.getElementById('selectedStudentTimer');
+                        if (selectedStudentTimerElement) {
+                            selectedStudentTimerElement.textContent = formatTime(currentRemaining);
+                            console.log(`🎯 Main timer updated to: ${formatTime(currentRemaining)}`);
+                        }
+                    }
+                    
+                    // Update all student sessions with current base time
+                    studentSessions.forEach(session => {
+                        if (session.individualTimer && session.individualTimer.status === 'running') {
+                            session.individualTimer.remainingTime = currentRemaining;
+                            session.individualTimer.lastUpdated = new Date();
+                        }
+                    });
+                    
+                    // Note: Selected student timer is already updated above in real-time
+                    
+                    // Check if time is up
+                    if (currentRemaining <= 0) {
+                        clearInterval(clientSideTimer);
+                        clientSideTimer = null;
+                        updateTimerButtonStates('completed');
+                        
+                        // Update student timer status if expired
+                        if (currentRole === 'student') {
+                            const studentTimerStatus = document.getElementById('studentTimerStatus');
+                            if (studentTimerStatus) {
+                                studentTimerStatus.textContent = 'Time expired!';
+                                studentTimerStatus.className = 'timer-status expired';
+                            }
+                        }
+                        
+                        showNotification('Exam time has expired!', 'info');
+                    }
+                }, 1000);
+            }
+        }
+
+        function startStudentClientSideTimer(timerState) {
+            // This is the same as startClientSideTimer but specifically for students
+            console.log('🎯 Starting student client-side timer with data:', timerState);
+            startClientSideTimer(timerState);
+        }
+
+        function updateTimerDisplay(remainingTime) {
+            // Update main timer display for instructors immediately
+            if (currentRole !== 'student') {
+                const selectedStudentTimerElement = document.getElementById('selectedStudentTimer');
+                if (selectedStudentTimerElement) {
+                    selectedStudentTimerElement.textContent = formatTime(remainingTime);
+                    console.log(`⏰ Main timer display updated to: ${formatTime(remainingTime)}`);
+                }
+            }
+            console.log(`⏰ Timer display update called with: ${formatTime(remainingTime)}`);
+        }
+
+        function updateTimerButtonStates(status) {
+            const startBtn = document.getElementById('selectedStudentStartBtn');
+            const pauseBtn = document.getElementById('selectedStudentPauseBtn');
+            const resetBtn = document.getElementById('selectedStudentResetBtn');
+            
+            if (startBtn && pauseBtn && resetBtn) {
+                switch (status) {
+                    case 'running':
+                        startBtn.disabled = true;
+                        startBtn.style.opacity = '0.5';
+                        pauseBtn.disabled = false;
+                        pauseBtn.style.opacity = '1';
+                        resetBtn.disabled = false;
+                        resetBtn.style.opacity = '1';
+                        break;
+                    case 'paused':
+                    case 'not_started':
+                    case 'stopped':
+                    case 'completed':
+                        startBtn.disabled = false;
+                        startBtn.style.opacity = '1';
+                        pauseBtn.disabled = true;
+                        pauseBtn.style.opacity = '0.5';
+                        resetBtn.disabled = false;
+                        resetBtn.style.opacity = '1';
+                        break;
+                }
+            }
+        }
+
+        function formatTime(seconds) {
+            console.log(`📊 Formatting time: ${seconds} seconds`);
+            
+            // Validate input
+            if (typeof seconds !== 'number' || isNaN(seconds) || seconds < 0) {
+                console.error(`❌ Invalid seconds value: ${seconds} (type: ${typeof seconds})`);
+                return '00:00:00';
+            }
+            
+            const hours = Math.floor(seconds / 3600);
+            const minutes = Math.floor((seconds % 3600) / 60);
+            const secs = Math.floor(seconds % 60);
+
+            const formatted = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+            console.log(`✅ Formatted time result: ${formatted}`);
+            
+            return formatted;
+        }
+
+        function getStatusColor(status) {
+            switch (status) {
+                case 'running':
+                    return 'linear-gradient(135deg, #4CAF50, #45a049)';
+                case 'paused':
+                    return 'linear-gradient(135deg, #FF9800, #f57c00)';
+                case 'completed':
+                    return 'linear-gradient(135deg, #f44336, #d32f2f)';
+                case 'stopped':
+                    return 'linear-gradient(135deg, #9E9E9E, #757575)';
+                default:
+                    return 'linear-gradient(135deg, #667eea, #764ba2)';
+            }
+        }
+
+        function enableControls(isInstructor) {
+            const buttons = ['startBtn', 'pauseBtn', 'resetBtn', 'addTimeBtn', 'subtractTimeBtn'];
+            buttons.forEach(btnId => {
+                const btn = document.getElementById(btnId);
+                if (btn) {
+                btn.disabled = !isInstructor;
+                btn.style.opacity = isInstructor ? '1' : '0.5';
+                    btn.style.cursor = isInstructor ? 'pointer' : 'not-allowed';
+                }
+            });
+            
+            // Also disable/enable time adjustment input and buttons
+            const timeInput = document.getElementById('timeAdjustment');
+            const customAddBtn = document.querySelector('button[onclick="customAddTime()"]');
+            const customSubtractBtn = document.querySelector('button[onclick="customSubtractTime()"]');
+            
+            if (timeInput) {
+                timeInput.disabled = !isInstructor;
+                timeInput.style.opacity = isInstructor ? '1' : '0.5';
+            }
+            
+            if (customAddBtn) {
+                customAddBtn.disabled = !isInstructor;
+                customAddBtn.style.opacity = isInstructor ? '1' : '0.5';
+                customAddBtn.style.cursor = isInstructor ? 'pointer' : 'not-allowed';
+            }
+            
+            if (customSubtractBtn) {
+                customSubtractBtn.disabled = !isInstructor;
+                customSubtractBtn.style.opacity = isInstructor ? '1' : '0.5';
+                customSubtractBtn.style.cursor = isInstructor ? 'pointer' : 'not-allowed';
+            }
+        }
+
+        function addLog(message) {
+            const logsContainer = document.getElementById('logs');
+            const logEntry = document.createElement('div');
+            logEntry.className = 'log-entry';
+            logEntry.textContent = `${new Date().toLocaleTimeString()}: ${message}`;
+            logsContainer.appendChild(logEntry);
+            logsContainer.scrollTop = logsContainer.scrollHeight;
+        }
+
+        function showError(message) {
+            const errorContainer = document.getElementById('errorContainer');
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'error';
+            errorDiv.textContent = message;
+            errorContainer.appendChild(errorDiv);
+
+            setTimeout(() => {
+                errorDiv.remove();
+            }, 5000);
+        }
+
+        function showNotification(message, type = 'info') {
+            const container = document.getElementById('notificationContainer');
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.textContent = message;
+            
+            container.appendChild(notification);
+            
+            // Auto remove after 5 seconds
+            setTimeout(() => {
+                notification.classList.add('slide-out');
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.parentNode.removeChild(notification);
+                    }
+                }, 300);
+            }, 5000);
+        }
+
+        // Students Management Functions
+        async function loadExamDetails() {
+            if (!currentExamId) return;
+            
+            try {
+                const response = await fetch(`/api/exams/${currentExamId}`);
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                
+                const examData = await response.json();
+                currentExamData = examData;
+                
+                // Update exam info panel
+                document.getElementById('examTitle').textContent = examData.title;
+                document.getElementById('examDescription').textContent = examData.description;
+                document.getElementById('examDuration').textContent = formatTime(examData.duration);
+                document.getElementById('examStatus').textContent = examData.status.charAt(0).toUpperCase() + examData.status.slice(1);
+                
+                addLog(`Loaded exam details: ${examData.title}`);
+            } catch (error) {
+                console.error('Error loading exam details:', error);
+                showNotification('Failed to load exam details', 'error');
+            }
+        }
+
+        function refreshExamDetails() {
+            if (currentExamId) {
+                // Reload exam details from API to get updated student list
+                loadExamDetails();
+                // Also request WebSocket session updates for real-time status
+                requestStudentSessions();
+                addLog('Refreshed exam details and student status');
+            }
+        }
+
+        function requestStudentSessions() {
+            if (!socket || !currentExamId) return;
+            
+            socket.emit('requestStudentSessions', { examId: currentExamId });
+        }
+
+        // Update students table from API data (connected students from exam)
+        function updateStudentsTableFromAPI(apiStudents) {
+            const tableBody = document.getElementById('studentsTableBody');
+            
+            // Clear existing rows
+            tableBody.innerHTML = '';
+            
+            if (apiStudents.length === 0) {
+                tableBody.innerHTML = '<tr class="no-students"><td colspan="5">No students have joined this exam yet</td></tr>';
+                return;
+            }
+            
+            // Merge API data with WebSocket session status
+            const studentsWithSessionStatus = apiStudents.map(apiStudent => {
+                // Find corresponding WebSocket session
+                const sessionStudent = studentSessions.find(s => s.studentId === apiStudent.id || s.studentId === apiStudent._id);
+                
+                return {
+                    studentId: apiStudent.id || apiStudent._id,
+                    userName: apiStudent.fullName || `${apiStudent.firstName} ${apiStudent.lastName}`,
+                    email: apiStudent.email,
+                    isConnected: sessionStudent ? sessionStudent.isConnected : false,
+                    joinedAt: sessionStudent ? sessionStudent.joinedAt : apiStudent.createdAt,
+                    individualTimer: sessionStudent ? sessionStudent.individualTimer : {
+                        remainingTime: currentExamData?.remainingTime || 0,
+                        timeAdjustment: 0,
+                        status: 'stopped',
+                        lastUpdated: new Date()
+                    }
+                };
+            });
+            
+            // Add student rows
+            studentsWithSessionStatus.forEach(student => {
+                const row = createStudentRow(student);
+                tableBody.appendChild(row);
+            });
+        }
+
+        // Update students table from WebSocket sessions (real-time updates)
+        function updateStudentsTable(students) {
+            // If we have API data, merge it with WebSocket data
+            if (currentExamData && currentExamData.connectedStudents) {
+                updateStudentsTableFromAPI(currentExamData.connectedStudents);
+            } else {
+                // Fallback to WebSocket-only data
+                const tableBody = document.getElementById('studentsTableBody');
+                
+                // Clear existing rows
+                tableBody.innerHTML = '';
+                
+                if (students.length === 0) {
+                    tableBody.innerHTML = '<tr class="no-students"><td colspan="5">No students have joined this exam yet</td></tr>';
+                    return;
+                }
+                
+                // Add student rows
+                students.forEach(student => {
+                    const row = createStudentRow(student);
+                    tableBody.appendChild(row);
+                });
+            }
+        }
+
+        function createStudentRow(student) {
+            const row = document.createElement('tr');
+            row.dataset.studentId = student.studentId;
+            
+            // Add selected class if this is the selected student
+            if (selectedStudentId === student.studentId) {
+                row.classList.add('selected');
+            }
+            
+            const statusClass = student.isConnected ? 'status-connected' : 'status-disconnected';
+            const statusText = student.isConnected ? 'Connected' : 'Disconnected';
+            
+            const joinTime = new Date(student.joinedAt).toLocaleTimeString();
+            
+            // Display individual timer state
+            let timerDisplay = '--:--:--';
+            let timerStatus = 'stopped';
+            
+            if (student.timerState) {
+                timerDisplay = formatTime(student.timerState.remainingTime);
+                timerStatus = student.timerState.status || 'stopped';
+                
+                // Add adjustment if present
+                if (student.timerState.timeAdjustment && student.timerState.timeAdjustment !== 0) {
+                    const adjustment = student.timerState.timeAdjustment > 0 ? 
+                        `+${student.timerState.timeAdjustment}s` : 
+                        `${student.timerState.timeAdjustment}s`;
+                    timerDisplay += ` (${adjustment})`;
+                }
+            }
+            
+            const timerStatusClass = `timer-status-${timerStatus}`;
+            
+            row.innerHTML = `
+                <td><strong>${student.userName}</strong></td>
+                <td>${student.studentId}</td>
+                <td><span class="connection-status-badge ${statusClass}">${statusText}</span></td>
+                <td><span class="join-time">${joinTime}</span></td>
+                <td><span class="individual-timer-cell ${timerStatusClass}">${timerDisplay}</span></td>
+            `;
+            
+            // Add click handler for student selection
+            row.addEventListener('click', () => {
+                selectStudent(student.studentId);
+            });
+            
+            return row;
+        }
+
+        function selectStudent(studentId) {
+            if (!socket || !currentExamId) return;
+            
+            selectedStudentId = studentId;
+            
+            // Update table selection
+            const allRows = document.querySelectorAll('#studentsTableBody tr');
+            allRows.forEach(row => row.classList.remove('selected'));
+            
+            const selectedRow = document.querySelector(`tr[data-student-id="${studentId}"]`);
+            if (selectedRow) {
+                selectedRow.classList.add('selected');
+            }
+            
+            // Request student details
+            socket.emit('selectStudent', { examId: currentExamId, studentId: studentId });
+        }
+
+        function showSelectedStudentControls(studentData) {
+            const controlsSection = document.getElementById('selectedStudentControls');
+            
+            // Clear any existing timer update interval
+            if (selectedStudentTimerUpdate) {
+                clearInterval(selectedStudentTimerUpdate);
+                selectedStudentTimerUpdate = null;
+            }
+            
+            // Update student details
+            document.getElementById('selectedStudentName').textContent = studentData.studentName;
+            document.getElementById('selectedStudentId').textContent = studentData.studentId;
+            
+            const statusClass = studentData.isConnected ? 'status-connected' : 'status-disconnected';
+            const statusText = studentData.isConnected ? 'Connected' : 'Disconnected';
+            document.getElementById('selectedStudentStatus').innerHTML = 
+                `<span class="connection-status-badge ${statusClass}">${statusText}</span>`;
+            
+            // Update timer display with individual student timer data
+            if (studentData.timerState) {
+                updateSelectedStudentTimer(studentData);
+                console.log(`🎯 Selected student timer state:`, studentData.timerState);
+            } else {
+                console.log('❌ No timer state available for selected student');
+            }
+            
+            // Show controls
+            controlsSection.style.display = 'block';
+            
+            addLog(`Selected student ${studentData.studentName} for individual timer control`);
+        }
+
+        function updateSelectedStudentTimer(studentData) {
+            console.log('🔄 Selected student timer update called - Individual Sessions mode');
+            
+            if (!studentData || !studentData.timerState) {
+                console.log('❌ No timer state data for selected student');
+                return;
+            }
+            
+            const timerState = studentData.timerState;
+            
+            // Update timer display with individual student data
+            const selectedStudentTimerElement = document.getElementById('selectedStudentTimer');
+            if (selectedStudentTimerElement && typeof timerState.remainingTime === 'number') {
+                selectedStudentTimerElement.textContent = formatTime(timerState.remainingTime);
+            }
+            
+            // Update adjustment display
+            const adjustmentDisplay = document.getElementById('selectedStudentAdjustment');
+            if (adjustmentDisplay) {
+                const adjustment = timerState.timeAdjustment || 0;
+                adjustmentDisplay.textContent = adjustment !== 0 ? `${adjustment > 0 ? '+' : ''}${adjustment}s` : 'No adjustment';
+            }
+            
+            // Update timer button states based on individual student status
+            // Ensure proper button state management especially after reset
+            const currentStatus = timerState.status || 'stopped';
+            updateTimerButtonStates(currentStatus);
+            
+            // Additional check for stopped status to ensure buttons remain in correct state
+            if (currentStatus === 'stopped') {
+                setTimeout(() => {
+                    // Double-check button states after a brief delay to ensure they stay correct
+                    updateTimerButtonStates('stopped');
+                }, 100);
+            }
+            
+            console.log(`✅ Timer updated for student ${studentData.studentId}: ${formatTime(timerState.remainingTime)} - Status: ${currentStatus}`);
+        }
+
+        function adjustSelectedStudentTime(timeAdjustment) {
+            if (!socket || !currentExamId || !selectedStudentId) {
+                showNotification('Please select a student first', 'error');
+                return;
+            }
+            
+            if (!currentRole || (currentRole !== 'instructor' && currentRole !== 'admin')) {
+                showNotification('Only instructors and admins can adjust student timer', 'error');
+                return;
+            }
+            
+            console.log(`🎯 Adjusting individual timer for student ${selectedStudentId}: ${timeAdjustment}s`);
+            
+            // Send adjustment to server for individual student timer
+            socket.emit('adjustTimer', {
+                examId: currentExamId,
+                studentId: selectedStudentId,
+                timeAdjustment: timeAdjustment
+            });
+            
+            // Check if timer is stopped and refresh student data to get updated timer display
+            const selectedStudentTimerElement = document.getElementById('selectedStudentTimer');
+            if (selectedStudentTimerElement) {
+                // Get current timer status from student sessions
+                const studentSession = studentSessions.find(s => s.studentId === selectedStudentId);
+                if (studentSession && studentSession.timerState && 
+                    (studentSession.timerState.status === 'stopped' || 
+                     studentSession.timerState.status === 'paused' || 
+                     studentSession.timerState.status === 'not_started')) {
+                    // Timer is not running, force refresh to get updated display
+                    setTimeout(() => {
+                        socket.emit('selectStudent', { examId: currentExamId, studentId: selectedStudentId });
+                    }, 100);
+                }
+            }
+            
+            const action = timeAdjustment > 0 ? 'Added' : 'Subtracted';
+            const time = Math.abs(timeAdjustment);
+            addLog(`${action} ${time} seconds to student ${selectedStudentId} timer`);
+            showNotification(`${action} ${time} seconds to student timer`, 'success');
+        }
+
+        function adjustSelectedStudentCustomTime() {
+            const input = document.getElementById('customAdjustmentInput');
+            const timeAdjustment = parseInt(input.value);
+            
+            if (isNaN(timeAdjustment) || timeAdjustment === 0) {
+                showNotification('Please enter a valid time adjustment', 'error');
+                return;
+            }
+            
+            adjustSelectedStudentTime(timeAdjustment);
+            input.value = ''; // Clear input
+        }
+
+        function updateConnectedCount(students) {
+            const connectedCount = students.filter(s => s.isConnected).length;
+            document.getElementById('connectedCount').textContent = connectedCount;
+        }
+
+        function updateIndividualTimer(timerData) {
+            console.log('🔄 Individual timer update (DEPRECATED - using centralized timer)');
+            // This function is deprecated - all timer updates now use timerUpdate event
+            // Students get the same centralized timer data as instructors
+        }
+
+        // Authentication Functions
+        function checkAuthentication() {
+            authToken = localStorage.getItem('token');
+            const userStr = localStorage.getItem('user');
+            
+            if (!authToken || !userStr) {
+                redirectToLogin();
+                return false;
+            }
+            
+            try {
+                currentUser = JSON.parse(userStr);
+                currentUserId = currentUser.id;
+                currentRole = currentUser.role;
+                
+                // Verify token is still valid
+                fetch('/api/auth/profile', {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                    },
+                })
+                .then(response => {
+                    console.log('Profile response status:', response.status);
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: Token verification failed`);
+                    }
+                    return response.json();
+                })
+                .then(userData => {
+                    console.log('Profile data received:', userData);
+                    // Update user data and merge with stored user
+                    currentUser = {
+                        ...currentUser,
+                        ...userData,
+                        id: userData._id || userData.id || currentUser.id,
+                        role: userData.role || currentUser.role
+                    };
+                    localStorage.setItem('user', JSON.stringify(currentUser));
+                    initializeUserInterface();
+                })
+                .catch(error => {
+                    console.error('Token verification failed:', error);
+                    // Only logout if it's a real authentication error
+                    if (error.message.includes('401') || error.message.includes('403')) {
+                        logout();
+                    } else {
+                        // Network error - try to use stored user data
+                        console.log('Network error, using stored user data');
+                        initializeUserInterface();
+                    }
+                });
+                
+                return true;
+            } catch (error) {
+                console.error('Invalid user data:', error);
+                logout();
+                return false;
+            }
+        }
+
+        function redirectToLogin() {
+            window.location.href = '/login.html';
+        }
+
+        function logout() {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            redirectToLogin();
+        }
+
+        function initializeUserInterface() {
+            // Show user info
+            const userInfoBar = document.getElementById('userInfoBar');
+            const userName = document.getElementById('userName');
+            const userRole = document.getElementById('userRole');
+            
+            userName.textContent = currentUser.fullName || `${currentUser.firstName} ${currentUser.lastName}`;
+            userRole.textContent = currentUser.role;
+            userInfoBar.style.display = 'flex';
+            
+            // Initialize socket connection with authentication
+            initSocket();
+            
+            // Show appropriate interface based on role
+            if (currentUser.role === 'instructor' || currentUser.role === 'admin') {
+                showInstructorInterface();
+            } else if (currentUser.role === 'student') {
+                showStudentInterface();
+            }
+            
+            addLog(`Welcome ${currentUser.fullName} (${currentUser.role})`);
+        }
+
+        function showInstructorInterface() {
+            // Show instructor sections
+            showInstructorSection(true);
+            
+            // Update dashboard for instructor
+            updateDashboardForRole('instructor');
+            
+            // Load instructor's exams
+            loadRoleBasedExams();
+            
+            addLog('Instructor interface loaded - You can create and manage exams');
+        }
+
+        async function showStudentInterface() {
+            // Hide instructor sections
+            showInstructorSection(false);
+            
+            // Update dashboard for student
+            updateDashboardForRole('student');
+            
+            // Load student's exams
+            loadRoleBasedExams();
+            
+            addLog('Student interface loaded - Your available exams are displayed below');
+        }
+
+        function updateDashboardForRole(role) {
+            const dashboardTitle = document.getElementById('dashboardTitle');
+            const dashboardInstructions = document.getElementById('dashboardInstructions');
+            
+            if (role === 'instructor') {
+                dashboardTitle.textContent = '🎓 My Created Exams';
+                dashboardInstructions.innerHTML = `
+                    <li>Click on an exam to view student participation and manage</li>
+                    <li>Use "Join Exam" to enter the exam management interface</li>
+                    <li>Create new exams using the "Create New Exam" button above</li>
+                `;
+            } else {
+                dashboardTitle.textContent = '📚 My Exams';
+                dashboardInstructions.innerHTML = `
+                    <li>Click "Join Exam" to enter the exam and start your timer</li>
+                    <li>Your instructor will manage your individual timer</li>
+                    <li>Stay connected to receive real-time updates</li>
+                `;
+            }
+        }
+
+        // Load exams based on user role using the getAllExamsByRole API
+        async function loadRoleBasedExams() {
+            if (!authToken || !currentUser) return;
+            
+            try {
+                const response = await fetch('/api/exams', {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json',
+                    },
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const exams = await response.json();
+                console.log('Role-based exams loaded:', exams);
+                
+                displayRoleBasedExams(exams);
+                addLog(`Loaded ${exams.length} exams for ${currentUser.role}`);
+            } catch (error) {
+                console.error('Error loading role-based exams:', error);
+                document.getElementById('examsList').innerHTML = 
+                    '<div class="loading-exams">Failed to load exams. Please refresh the page.</div>';
+                showNotification(`Failed to load exams: ${error.message}`, 'error');
+            }
+        }
+
+        async function loadStudentExams() {
+            // This function is now replaced by loadRoleBasedExams
+            // Keeping for backward compatibility, but redirecting to new function
+            await loadRoleBasedExams();
+        }
+
+        function displayStudentExams(exams) {
+            const grid = document.getElementById('studentExamsGrid');
+            
+            if (exams.length === 0) {
+                grid.innerHTML = '<div class="no-exams">No exams available at the moment</div>';
+                return;
+            }
+            
+            grid.innerHTML = '';
+            
+            exams.forEach(exam => {
+                const card = createExamCard(exam);
+                grid.appendChild(card);
+            });
+        }
+
+        function displayRoleBasedExams(exams) {
+            const grid = document.getElementById('examsList');
+            
+            if (exams.length === 0) {
+                const message = currentUser.role === 'instructor' 
+                    ? 'No exams created yet. Create your first exam using the button above!'
+                    : 'No exams available. Contact your instructor for exam access.';
+                grid.innerHTML = `<div class="loading-exams">${message}</div>`;
+                return;
+            }
+            
+            grid.innerHTML = '';
+            
+            exams.forEach(exam => {
+                const card = createRoleBasedExamCard(exam);
+                grid.appendChild(card);
+            });
+        }
+
+        function createRoleBasedExamCard(exam) {
+            const card = document.createElement('div');
+            const cardClass = currentUser.role === 'instructor' ? 'instructor-exam' : 'student-exam';
+            card.className = `exam-card ${cardClass}`;
+            card.dataset.examId = exam._id;
+            
+            const statusClass = `status-${exam.status}`;
+            const duration = formatTime(exam.duration);
+            const connectedCount = exam.connectedStudents?.length || 0;
+            
+            // Different content based on role
+            const actionButtons = currentUser.role === 'instructor' 
+                ? `
+                    <div class="exam-card-actions">
+                        <button class="btn-join-exam" onclick="joinExamAsInstructor('${exam._id}')">
+                            🔗 Join Exam
+                        </button>
+                        <button class="btn-view-students" onclick="viewExamStudents('${exam._id}')">
+                            👥 View Students (${connectedCount})
+                        </button>
+                    </div>
+                `
+                : `
+                    <div class="exam-card-actions">
+                        <button class="btn-join-exam" onclick="joinExamAsStudent('${exam._id}')">
+                            🚀 Join Exam
+                        </button>
+                    </div>
+                `;
+            
+            card.innerHTML = `
+                <div class="exam-card-header">
+                    <div class="exam-title">${exam.title}</div>
+                    <div class="exam-status-badge ${statusClass}">${exam.status}</div>
+                </div>
+                <div class="exam-description">${exam.description}</div>
+                <div class="exam-meta">
+                    <span>📚 Duration: ${duration}</span>
+                    <span>👥 Connected: ${connectedCount}</span>
+                    ${currentUser.role === 'instructor' ? `<span>📝 Created: ${new Date(exam.createdAt).toLocaleDateString()}</span>` : ''}
+                </div>
+                ${actionButtons}
+            `;
+            
+            return card;
+        }
+
+        function createExamCard(exam) {
+            // Legacy function - now redirects to new role-based function
+            return createRoleBasedExamCard(exam);
+        }
+
+        function joinExamAsInstructor(examId) {
+            // Set current exam and join
+            currentExamId = examId;
+            
+            // Hide dashboard and show management interface
+            document.getElementById('examDashboard').style.display = 'none';
+            
+            // Show current exam info
+            showCurrentExamInfo(examId);
+            
+            // Join via WebSocket with instructor role
+            if (socket) {
+                socket.emit('joinExam', {
+                    examId: examId,
+                    userId: currentUserId,
+                    role: currentUser.role
+                });
+                
+                isJoinedToExam = true;
+                addLog(`Joined exam ${examId} as instructor`);
+                
+                // Load exam details and show student management
+                loadExamDetails();
+            } else {
+                showNotification('WebSocket connection not available', 'error');
+            }
+        }
+
+        function joinExamAsStudent(examId) {
+            console.log(`🎯 Student joining exam: ${examId}`);
+            
+            // Set current exam and join
+            currentExamId = examId;
+            
+            // Hide dashboard and show student exam interface
+            const examDashboard = document.getElementById('examDashboard');
+            const studentExamInterface = document.getElementById('studentExamInterface');
+            const studentExamTimer = document.getElementById('studentExamTimer');
+            
+            console.log('🔍 Interface elements check:', {
+                examDashboard: !!examDashboard,
+                studentExamInterface: !!studentExamInterface,
+                studentExamTimer: !!studentExamTimer
+            });
+            
+            // Hide dashboard
+            if (examDashboard) {
+                examDashboard.style.display = 'none';
+                console.log('✅ Dashboard hidden');
+            }
+            
+            // Show student exam interface
+            if (studentExamInterface) {
+                studentExamInterface.style.display = 'block';
+                console.log('✅ Student exam interface shown');
+                
+                // Update exam info in student interface
+                const examData = getCurrentExamData(examId);
+                if (examData) {
+                    document.getElementById('studentCurrentExamTitle').textContent = examData.title;
+                    document.getElementById('studentCurrentExamDescription').textContent = examData.description;
+                } else {
+                    document.getElementById('studentCurrentExamTitle').textContent = `Exam ${examId}`;
+                    document.getElementById('studentCurrentExamDescription').textContent = 'Loading exam details...';
+                }
+            } else {
+                console.error('❌ Student exam interface not found!');
+            }
+            
+            // Initialize timer display
+            if (studentExamTimer) {
+                const timerDisplay = document.getElementById('studentTimerDisplay');
+                const timerStatus = document.getElementById('studentTimerStatus');
+                
+                if (timerDisplay) {
+                    timerDisplay.textContent = '00:00:00';
+                    console.log('✅ Timer display initialized');
+                }
+                
+                if (timerStatus) {
+                    timerStatus.textContent = 'Connecting to exam...';
+                    timerStatus.className = 'timer-status';
+                    console.log('✅ Timer status initialized');
+                }
+            } else {
+                console.error('❌ Student timer not found!');
+            }
+            
+            // Join via WebSocket with student role
+            if (socket) {
+                addLog(`🔗 Connecting to exam ${examId} as student...`);
+                
+                socket.emit('joinExam', {
+                    examId: examId,
+                    userId: currentUserId,
+                    role: currentUser.role
+                });
+                
+                isJoinedToExam = true;
+            } else {
+                showNotification('WebSocket connection not available', 'error');
+                console.error('❌ No WebSocket connection available');
+            }
+        }
+
+        function viewExamStudents(examId) {
+            // Load and display exam details for instructor
+            currentExamId = examId;
+            loadExamDetails();
+            showNotification(`Loading students for exam ${examId}`, 'info');
+        }
+
+        function showCurrentExamInfo(examId) {
+            console.log(`📋 Showing current exam info for exam: ${examId}`);
+            console.log('Current user role:', currentUser?.role);
+            
+            const currentExamInfo = document.getElementById('currentExamInfo');
+            const examData = getCurrentExamData(examId);
+            
+            if (examData) {
+                document.getElementById('currentExamTitle').textContent = examData.title;
+                document.getElementById('currentExamDescription').textContent = examData.description;
+            } else {
+                document.getElementById('currentExamTitle').textContent = `Exam ${examId}`;
+                document.getElementById('currentExamDescription').textContent = 'Loading exam details...';
+            }
+            
+            // Show student timer if user is a student
+            if (currentUser && currentUser.role === 'student') {
+                const studentTimerElement = document.getElementById('studentExamTimer');
+                console.log('Student timer element:', studentTimerElement);
+                
+                if (studentTimerElement) {
+                    studentTimerElement.style.display = 'block';
+                    console.log('✅ Student timer display activated in showCurrentExamInfo');
+                    
+                    // Initialize timer display
+                    const timerDisplay = document.getElementById('studentTimerDisplay');
+                    const timerStatus = document.getElementById('studentTimerStatus');
+                    
+                    if (timerDisplay) {
+                        timerDisplay.textContent = '00:00:00';
+                        console.log('✅ Timer display initialized');
+                    }
+                    
+                    if (timerStatus) {
+                        timerStatus.textContent = 'Preparing timer...';
+                        timerStatus.className = 'timer-status';
+                        console.log('✅ Timer status initialized');
+                    }
+                } else {
+                    console.error('❌ Student timer element not found in DOM!');
+                }
+                
+                addLog('🎯 Student timer display activated');
+            }
+            
+            if (currentExamInfo) {
+                currentExamInfo.style.display = 'block';
+                console.log('✅ Current exam info displayed');
+            }
+        }
+
+        function getCurrentExamData(examId) {
+            // Try to find exam data from previously loaded exams
+            // This is a helper function to get cached exam data
+            return currentExamData || null;
+        }
+
+        function leaveCurrentExam() {
+            console.log('🚪 Leaving current exam...');
+            
+            if (socket && currentExamId) {
+                socket.emit('leaveExam', {
+                    examId: currentExamId,
+                    userId: currentUserId
+                });
+            }
+            
+            // Reset state
+            currentExamId = null;
+            isJoinedToExam = false;
+            
+            // Hide all exam interfaces
+            const currentExamInfo = document.getElementById('currentExamInfo');
+            const studentExamInterface = document.getElementById('studentExamInterface');
+            const studentsManagement = document.getElementById('studentsManagement');
+            const examDashboard = document.getElementById('examDashboard');
+            
+            if (currentExamInfo) {
+                currentExamInfo.style.display = 'none';
+                console.log('✅ Instructor exam info hidden');
+            }
+            
+            if (studentExamInterface) {
+                studentExamInterface.style.display = 'none';
+                console.log('✅ Student exam interface hidden');
+            }
+            
+            if (studentsManagement) {
+                studentsManagement.style.display = 'none';
+                console.log('✅ Student management hidden');
+            }
+            
+            // Show dashboard again
+            if (examDashboard) {
+                examDashboard.style.display = 'block';
+                console.log('✅ Dashboard shown');
+            }
+            
+            // Clear client-side timer
+            if (clientSideTimer) {
+                clearInterval(clientSideTimer);
+                clientSideTimer = null;
+                console.log('✅ Client-side timer cleared');
+            }
+            
+            // Clear selected student timer updates
+            if (selectedStudentTimerUpdate) {
+                clearInterval(selectedStudentTimerUpdate);
+                selectedStudentTimerUpdate = null;
+                console.log('✅ Selected student timer updates cleared');
+            }
+            
+            // Reset selected student
+            selectedStudentId = null;
+            
+            addLog('🎯 Left exam and returned to dashboard');
+        }
+
+        // Create exam using proper API with authentication matching CreateExamDto structure
+        async function createExamFromModal() {
+            const title = document.getElementById('modalExamTitle').value.trim();
+            const description = document.getElementById('modalExamDescription').value.trim();
+            const duration = parseInt(document.getElementById('modalExamDuration').value);
+            
+            if (!title || !description || !duration || duration < 5 || duration > 300) {
+                showNotification('Please fill all fields correctly (duration: 5-300 minutes)', 'error');
+                return;
+            }
+            
+            if (!authToken || !currentUserId) {
+                showNotification('Authentication required. Please log in again.', 'error');
+                return;
+            }
+            
+            try {
+                // Prepare request body matching CreateExamDto structure
+                const requestBody = {
+                    title: title,
+                    description: description,
+                    duration: duration, // Duration in minutes as expected by DTO
+                    instructorId: currentUserId
+                };
+                
+                console.log('Creating exam with data:', requestBody);
+                
+                const response = await fetch('/api/exams', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`,
+                    },
+                    body: JSON.stringify(requestBody),
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.message || `HTTP ${response.status}: Failed to create exam`);
+                }
+                
+                const examData = await response.json();
+                console.log('Exam created successfully:', examData);
+                
+                showNotification(`Exam created successfully! ID: ${examData._id}`, 'success');
+                
+                // Clear modal form fields
+                document.getElementById('modalExamTitle').value = '';
+                document.getElementById('modalExamDescription').value = '';
+                document.getElementById('modalExamDuration').value = '';
+                
+                // Hide modal
+                hideCreateExamModal();
+                
+                // Refresh exam list to show the new exam
+                setTimeout(() => {
+                    loadRoleBasedExams();
+                }, 500);
+                
+            } catch (error) {
+                console.error('Error creating exam:', error);
+                showNotification(error.message || 'Failed to create exam', 'error');
+            }
+        }
+
+        // Load exam details using the proper API with authentication
+        async function loadExamDetails() {
+            if (!currentExamId || !authToken) return;
+            
+            try {
+                const response = await fetch(`/api/exams/${currentExamId}`, {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json',
+                    },
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const examData = await response.json();
+                currentExamData = examData;
+                
+                console.log('Exam data loaded:', examData);
+                
+                // Update exam info panel
+                document.getElementById('examTitle').textContent = examData.title;
+                document.getElementById('examDescription').textContent = examData.description;
+                document.getElementById('examDuration').textContent = formatTime(examData.duration);
+                document.getElementById('examStatus').textContent = examData.status.charAt(0).toUpperCase() + examData.status.slice(1);
+                
+                // Update connected students count from API data
+                const connectedStudentsFromAPI = examData.connectedStudents || [];
+                document.getElementById('connectedCount').textContent = connectedStudentsFromAPI.length;
+                
+                // Update students table with API data and WebSocket session status
+                updateStudentsTableFromAPI(connectedStudentsFromAPI);
+                
+                addLog(`Loaded exam details: ${examData.title} with ${connectedStudentsFromAPI.length} connected students`);
+            } catch (error) {
+                console.error('Error loading exam details:', error);
+                showNotification(`Failed to load exam details: ${error.message}`, 'error');
+            }
+        }
+
+        // Debug function to check DOM elements
+        function debugDOMElements() {
+            console.log('🔍 DOM Elements Debug Check:');
+            console.log('examDashboard:', document.getElementById('examDashboard'));
+            console.log('studentExamInterface:', document.getElementById('studentExamInterface'));
+            console.log('studentExamTimer:', document.getElementById('studentExamTimer'));
+            console.log('studentTimerDisplay:', document.getElementById('studentTimerDisplay'));
+            console.log('studentTimerStatus:', document.getElementById('studentTimerStatus'));
+            console.log('currentExamInfo:', document.getElementById('currentExamInfo'));
+            console.log('studentsManagement:', document.getElementById('studentsManagement'));
+            
+            // Check visibility
+            const studentInterface = document.getElementById('studentExamInterface');
+            if (studentInterface) {
+                console.log('Student interface visibility:', {
+                    display: studentInterface.style.display,
+                    visibility: studentInterface.style.visibility,
+                    offsetHeight: studentInterface.offsetHeight,
+                    offsetWidth: studentInterface.offsetWidth
+                });
+            }
+        }
+
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', () => {
+            addLog('PrepX Timer Application initialized - Checking authentication...');
+            
+            // Debug DOM elements
+            setTimeout(() => {
+                debugDOMElements();
+            }, 100);
+            
+            // Check authentication first
+            if (checkAuthentication()) {
+            enableControls(false); // Disable controls initially
+                
+                // Clean up any existing timers on page load
+                if (clientSideTimer) {
+                    clearInterval(clientSideTimer);
+                    clientSideTimer = null;
+                }
+            }
+            // Note: Socket connection will be initialized after successful authentication
+        });
+    </script>
+</body>
+</html>
