@@ -1,3 +1,11 @@
+front URL:
+https://prepx-timer.onrender.com
+swagger URL:
+https://prepx-timer.onrender.com/api/docs
+API URL:
+https://prepx-timer.onrender.com/api
+
+
 # PrepX Timer API
 
 A comprehensive real-time timer synchronization system built with NestJS, MongoDB, and WebSockets for managing online exam timers with advanced instructor controls, student participation, and authentication system.
