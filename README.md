@@ -4,7 +4,8 @@ swagger URL:
 https://prepx-timer.onrender.com/api/docs
 API URL:
 https://prepx-timer.onrender.com/api
-
+video link, which contains a detailed explanation of the work and progress. I believe this will help clarify the steps I have taken and the current status of the task:
+https://www.awesomescreenshot.com/video/43927841?key=662ce7bccf9d9627c5091b743df1bec3
 
 # PrepX Timer API
 
