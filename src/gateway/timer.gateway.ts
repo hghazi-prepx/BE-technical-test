@@ -65,6 +65,11 @@ interface StudentSession {
   pingInterval: 25000, // 25 seconds interval for ping
   upgradeTimeout: 30000, // 30 seconds timeout for connection upgrade
   allowEIO3: true, // Allow Engine.IO v3 clients for better compatibility
+  // Transport configuration for deployment platforms like Render
+  transports: ['websocket', 'polling'],
+  // Additional settings for production deployment
+  allowUpgrades: true,
+  cookie: false,
 })
 @Injectable()
 export class TimerGateway implements OnGatewayConnection, OnGatewayDisconnect {

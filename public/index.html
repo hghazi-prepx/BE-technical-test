@@ -1459,7 +1459,9 @@
                 };
             }
             
-            socket = io('http://localhost:3000', socketConfig);
+            // Use current host for WebSocket connection to support deployment
+            const wsUrl = window.location.protocol + '//' + window.location.host;
+            socket = io(wsUrl, socketConfig);
 
             socket.on('connect', () => {
                 updateConnectionStatus(true);

@@ -5,6 +5,7 @@ export interface AppConfig {
   mongodbUri: string;
   jwtSecret: string;
   corsOrigin: string;
+  websocketUrl: string;
   nodeEnv: string;
   defaultExamDuration: number;
   maxTimeAdjustment: number;
@@ -46,6 +47,7 @@ export class AppConfigService {
         'your_jwt_secret_key',
       ),
       corsOrigin: this.configService.get<string>('CORS_ORIGIN', '*'),
+      websocketUrl: this.configService.get<string>('WEBSOCKET_URL', 'http://localhost:3000'),
       nodeEnv: this.configService.get<string>('NODE_ENV', 'development'),
       defaultExamDuration: parseInt(
         this.configService.get<string>('DEFAULT_EXAM_DURATION', '7200'), // 2 hours default
@@ -153,5 +155,9 @@ export class AppConfigService {
 
   public get adminDefaultPassword(): string {
     return this.config.adminDefaultPassword;
+  }
+
+  public get websocketUrl(): string {
+    return this.config.websocketUrl;
   }
 }

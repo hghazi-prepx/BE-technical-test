@@ -30,9 +30,9 @@ async function bootstrap() {
   // Setup Swagger documentation
   SwaggerService.setupSwagger(app, appConfig);
 
-  await app.listen(appConfig.port);
+  await app.listen(appConfig.port, '0.0.0.0');
   console.log(
-    `🚀 Application is running on: http://localhost:${appConfig.port}`,
+    `🚀 Application is running on: http://0.0.0.0:${appConfig.port}`,
   );
   console.log(
     `📡 API endpoints available at: http://localhost:${appConfig.port}/api`,
