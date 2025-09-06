@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PrepX Timer - Login</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #333;
+        }
+
+        .login-container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            padding: 40px;
+            max-width: 400px;
+            width: 90%;
+            text-align: center;
+        }
+
+        .logo {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 1.1rem;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .form-group input:invalid {
+            border-color: #e74c3c;
+        }
+
+        .btn-login {
+            width: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            margin-bottom: 20px;
+        }
+
+        .btn-login:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-login:active {
+            transform: translateY(0);
+        }
+
+        .btn-login:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .loading-spinner {
+            display: none;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #ffffff;
+            border-top: 2px solid transparent;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error-message {
+            background: #fee;
+            color: #e74c3c;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #e74c3c;
+            display: none;
+        }
+
+        .help-text {
+            color: #666;
+            font-size: 0.9rem;
+            margin-top: 20px;
+        }
+
+        .demo-credentials {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 20px;
+            text-align: left;
+            font-size: 0.85rem;
+        }
+
+        .demo-credentials h4 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .demo-credentials .credential {
+            margin-bottom: 8px;
+            padding: 5px;
+            background: white;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        .demo-credentials .credential:hover {
+            background: #e9ecef;
+        }
+
+        .demo-credentials .credential strong {
+            color: #667eea;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="logo">🎯 PrepX</div>
+        <div class="subtitle">Exam Timer System</div>
+        
+        <div class="error-message" id="errorMessage"></div>
+        
+        <form id="loginForm">
+            <div class="form-group">
+                <label for="email">Email Address</label>
+                <input type="email" id="email" name="email" required placeholder="Enter your email">
+            </div>
+            
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" required placeholder="Enter your password">
+            </div>
+            
+            <button type="submit" class="btn-login" id="loginBtn">
+                <span id="loginText">Sign In</span>
+                <div class="loading-spinner" id="loadingSpinner"></div>
+            </button>
+        </form>
+        
+        <div class="help-text">
+            Enter your credentials to access the exam system
+        </div>
+
+        <div class="demo-credentials">
+            <h4>🧪 Demo Accounts</h4>
+            <div class="credential" onclick="loginWithCredentials('instructor02@example.com', '12345678')">
+                <strong>Instructor:</strong> instructor02@example.com
+            </div>
+            <div class="credential" onclick="loginWithCredentials('student01@example.com', '12345678')">
+                <strong>Student:</strong> student01@example.com
+            </div>
+            <div class="credential" onclick="loginWithCredentials('student02@example.com', '12345678')">
+                <strong>Student:</strong> student02@example.com
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Fill demo credentials
+        function fillCredentials(email, password) {
+            document.getElementById('email').value = email;
+            document.getElementById('password').value = password;
+        }
+
+        // Login with demo credentials automatically
+        async function loginWithCredentials(email, password) {
+            document.getElementById('email').value = email;
+            document.getElementById('password').value = password;
+            
+            hideError();
+            setLoading(true);
+            
+            try {
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ email, password }),
+                });
+                
+                const data = await response.json();
+                console.log('Login response:', data);
+                
+                if (!response.ok) {
+                    throw new Error(data.message || 'Login failed');
+                }
+                
+                // Store token and user info
+                if (data.accessToken) {
+                    localStorage.setItem('token', data.accessToken);
+                } else if (data.access_token) {
+                    localStorage.setItem('token', data.access_token);
+                } else {
+                    throw new Error('No access token received');
+                }
+                
+                if (data.user) {
+                    localStorage.setItem('user', JSON.stringify(data.user));
+                    console.log('User data stored:', data.user);
+                } else {
+                    throw new Error('No user data received');
+                }
+                
+                // Add small delay before redirect
+                setTimeout(() => {
+                    window.location.href = '/';
+                }, 500);
+                
+            } catch (error) {
+                console.error('Login error:', error);
+                showError(error.message || 'Login failed. Please try again.');
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        // Show error message
+        function showError(message) {
+            const errorElement = document.getElementById('errorMessage');
+            errorElement.textContent = message;
+            errorElement.style.display = 'block';
+        }
+
+        // Hide error message
+        function hideError() {
+            document.getElementById('errorMessage').style.display = 'none';
+        }
+
+        // Show loading state
+        function setLoading(loading) {
+            const loginBtn = document.getElementById('loginBtn');
+            const loginText = document.getElementById('loginText');
+            const loadingSpinner = document.getElementById('loadingSpinner');
+            
+            if (loading) {
+                loginBtn.disabled = true;
+                loginText.style.display = 'none';
+                loadingSpinner.style.display = 'block';
+            } else {
+                loginBtn.disabled = false;
+                loginText.style.display = 'inline';
+                loadingSpinner.style.display = 'none';
+            }
+        }
+
+        // Handle login form submission
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            if (!email || !password) {
+                showError('Please enter both email and password');
+                return;
+            }
+            
+            hideError();
+            setLoading(true);
+            
+            try {
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ email, password }),
+                });
+                
+                const data = await response.json();
+                console.log('Login response:', data);
+                
+                if (!response.ok) {
+                    throw new Error(data.message || 'Login failed');
+                }
+                
+                // Store token and user info
+                if (data.accessToken) {
+                    localStorage.setItem('token', data.accessToken);
+                } else if (data.access_token) {
+                    localStorage.setItem('token', data.access_token);
+                } else {
+                    throw new Error('No access token received');
+                }
+                
+                if (data.user) {
+                    localStorage.setItem('user', JSON.stringify(data.user));
+                    console.log('User data stored:', data.user);
+                } else {
+                    throw new Error('No user data received');
+                }
+                
+                // Add small delay before redirect
+                setTimeout(() => {
+                    window.location.href = '/';
+                }, 500);
+                
+            } catch (error) {
+                console.error('Login error:', error);
+                showError(error.message || 'Login failed. Please try again.');
+            } finally {
+                setLoading(false);
+            }
+        });
+
+        // Check if already logged in
+        document.addEventListener('DOMContentLoaded', () => {
+            const token = localStorage.getItem('token');
+            if (token) {
+                // Verify token is still valid
+                fetch('/api/auth/profile', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                    },
+                })
+                .then(response => {
+                    if (response.ok) {
+                        // Token is valid, redirect to main app
+                        window.location.href = '/';
+                    } else {
+                        // Token is invalid, clear storage
+                        localStorage.removeItem('token');
+                        localStorage.removeItem('user');
+                    }
+                })
+                .catch(() => {
+                    // Network error or invalid token
+                    localStorage.removeItem('token');
+                    localStorage.removeItem('user');
+                });
+            }
+        });
+    </script>
+</body>
+</html>
